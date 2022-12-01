@@ -7,9 +7,7 @@
 
 #include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/chunk_by.hpp>
-#include <range/v3/view/filter.hpp>
 #include <range/v3/view/getlines.hpp>
-#include <range/v3/view/transform.hpp>
 #include "range/v3/range/conversion.hpp"
 
 void all(const std::filesystem::path& inpath) {
@@ -20,16 +18,15 @@ void all(const std::filesystem::path& inpath) {
 
   std::array<int, 3> dest;
   std::ranges::partial_sort_copy(
-      data | ranges::views::chunk_by([](auto, auto s) { return !s.empty(); }) |
-          ranges::views::transform([](auto inner) {
-            return ranges::accumulate(
-                inner | ranges::views::filter([](auto str) {
-                  return !str.empty();
-                }) | ranges::views::transform([](auto str) {
-                  return std::atoi(str.c_str());
-                }),
-                0, std::plus());
-          }),
+      data | ranges::views::chunk_by([](auto, auto s) {
+        return !s.empty();
+      }) | std::views::transform([](auto inner) {
+        return ranges::accumulate(
+            inner | std::views::filter([](auto str) { return !str.empty(); }) |
+                std::views::transform(
+                    [](auto str) { return std::atoi(str.c_str()); }),
+            0, std::plus());
+      }),
       dest, std::greater{});
 
   printf("part 1 %d\n", dest[0]);
