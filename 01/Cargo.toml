@@ -1,0 +1,12 @@
+[package]
+name = "day01"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "part2"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+itertools = "0.10"
