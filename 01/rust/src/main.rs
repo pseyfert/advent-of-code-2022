@@ -4,5 +4,5 @@ pub mod part2;
 
 
 fn main() {
-    println!("{:?}", read::read_lines("input.txt"));
+    println!("{:?}", read::read_lines("../input.txt"));
 }
