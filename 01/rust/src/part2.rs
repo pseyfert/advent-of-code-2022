@@ -2,7 +2,7 @@ use anyhow::Result;
 use itertools::{fold, sorted};
 use std::convert::TryInto;
 
-fn three_of_four(x: i32, y: [i32; 3]) -> [i32; 3] {
+pub fn three_of_four(x: i32, y: [i32; 3]) -> [i32; 3] {
     // Is this sorted actually lazy?
     // For the search of TopN elements one "only" needs to buffer N elements when iterating.
     // Wondering if that's done here?

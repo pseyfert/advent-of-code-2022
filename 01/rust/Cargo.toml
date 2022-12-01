@@ -7,6 +7,10 @@ edition = "2021"
 name = "part2"
 path = "src/main.rs"
 
+[[bin]]
+name = "playground"
+path = "src/play.rs"
+
 [dependencies]
 anyhow = "1"
 itertools = "0.10"
