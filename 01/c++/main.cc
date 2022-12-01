@@ -1,18 +1,18 @@
 #include <algorithm>
-#include <numeric>
 #include <execution>
 #include <filesystem>
 #include <fstream>
+#include <numeric>
 #include <vector>
 
 int res(std::vector<int>& data) {
   partial_sort(
       std::execution::par_unseq, data.begin(), data.begin() + 3, data.end(),
-      [](auto l, auto r) { return l > r; });
+      std::greater{});
   printf("part 1 %d\n", data.front());
   return std::reduce(
       std::execution::par_unseq, data.begin(), data.begin() + 3, 0,
-      std::plus<int>());
+      std::plus());
 }
 
 std::vector<int> read(const std::filesystem::path& inpath) {
