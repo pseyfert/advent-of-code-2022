@@ -58,30 +58,20 @@ auto input(const std::filesystem::path& inpath) {
 
 template <typename T, typename F>
 auto compute_score(T& input, F&& f) {
-  // NB: input.data() doesn't exist upstream. I just added `auto& data() {
-  // return this->m_storage; } to SOAContainer.h.
-  using soa_t = std::decay_t<T>;
+  using namespace unprocessed;
   return std::transform_reduce(
       std::execution::par_unseq,
       // std::execution::seq,
       // first1
-      std::get<(soa_t::template memberno<unprocessed::opponent>())>(
-          input.data())
-          .begin(),
+      input.template begin<opponent>(),
       // last1
-      std::get<(soa_t::template memberno<unprocessed::opponent>())>(
-          input.data())
-          .end(),
+      input.template end<opponent>(),
       // first2
-      std::get<(soa_t::template memberno<unprocessed::self>())>(input.data())
-          .begin(),
+      input.template begin<self>(),
       // init
       0,
-      //
       // reduce
       std::plus(),
-
-      //
       // transform
       f);
 }
