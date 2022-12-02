@@ -56,8 +56,8 @@ auto input(const std::filesystem::path& inpath) {
   return retval;
 }
 
-template <typename T>
-auto compute_score(T& input) {
+template <typename T, typename F>
+auto compute_score(T& input, F&& f) {
   // NB: input.data() doesn't exist upstream. I just added `auto& data() {
   // return this->m_storage; } to SOAContainer.h.
   using soa_t = std::decay_t<T>;
@@ -83,28 +83,45 @@ auto compute_score(T& input) {
 
       //
       // transform
-      [](auto other, auto self) {
-        if (other == self) {
-          // printf("tie + %d\n", self);
-          return 3 + self;
-        } else if ((other % 3) == ((self + 1) % 3)) {
-          // printf("loss against %d + %d\n", other, self);
-          return 0 + self;
-        } else if (((other + 1) % 3) == (self % 3)) {
-          // printf("win + %d\n", self);
-          return 6 + self;
-        } else {
-          printf("ERROR\n");
-          return -1000;
-        }
-      });
+      f);
 }
 
 int main(int argc, char** argv) {
   auto d = input(argv[1]);
-  auto part1 = compute_score(d);
+  auto part1 = compute_score(d, [](auto other, auto self) {
+    if (other == self) {
+      // printf("tie + %d\n", self);
+      return 3 + self;
+    } else if ((other % 3) == ((self + 1) % 3)) {
+      // printf("loss against %d + %d\n", other, self);
+      return 0 + self;
+    } else if (((other + 1) % 3) == (self % 3)) {
+      // printf("win + %d\n", self);
+      return 6 + self;
+    } else {
+      printf("ERROR\n");
+      return -1000;
+    }
+  });
 
   printf("part 1: %d\n", part1);
+
+  auto part2 = compute_score(d, [](auto other, auto self) {
+    if (self == 2) {
+      // draw. own shape = other shape
+      return 3 + other;
+    } else if (self == 1) {
+      // loos. self = other - 1
+      return (other + 2 - 1) % 3 + 1;
+    } else if (self == 3) {
+      return 6 + (other + 1 - 1) % 3 + 1;
+    } else {
+      printf("ERROR\n");
+      return -1000;
+    }
+  });
+
+  printf("part 2: %d\n", part2);
 
   return 0;
 }
