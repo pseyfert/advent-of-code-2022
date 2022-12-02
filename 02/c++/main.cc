@@ -62,12 +62,19 @@ auto compute_score(T& input, F&& f) {
   return std::transform_reduce(
       std::execution::par_unseq,
       // std::execution::seq,
+#ifndef __NVCOMPILER
+      // first1
+      input.begin(),
+      // last1
+      input.end(),
+#else
       // first1
       input.template begin<opponent>(),
       // last1
       input.template end<opponent>(),
       // first2
       input.template begin<self>(),
+#endif
       // init
       0,
       // reduce
@@ -78,38 +85,62 @@ auto compute_score(T& input, F&& f) {
 
 int main(int argc, char** argv) {
   auto d = input(argv[1]);
-  auto part1 = compute_score(d, [](auto other, auto self) {
-    if (other == self) {
-      // printf("tie + %d\n", self);
-      return 3 + self;
-    } else if ((other % 3) == ((self + 1) % 3)) {
-      // printf("loss against %d + %d\n", other, self);
-      return 0 + self;
-    } else if (((other + 1) % 3) == (self % 3)) {
-      // printf("win + %d\n", self);
-      return 6 + self;
-    } else {
-      printf("ERROR\n");
-      return -1000;
-    }
-  });
+  auto part1 = compute_score(
+      d,
+#ifndef __NVCOMPILER
+      [](auto proxy) {
+        if (proxy.opponent() == proxy.self()) {
+          return 3 + proxy.self();
+        } else if ((proxy.opponent() % 3) == ((proxy.self() + 1) % 3)) {
+          return 0 + proxy.self();
+        } else if (((proxy.opponent() + 1) % 3) == (proxy.self() % 3)) {
+          return 6 + proxy.self();
+#else
+      [](auto other, auto self) {
+        if (other == self) {
+          // printf("tie + %d\n", self);
+          return 3 + self;
+        } else if ((other % 3) == ((self + 1) % 3)) {
+          // printf("loss against %d + %d\n", other, self);
+          return 0 + self;
+        } else if (((other + 1) % 3) == (self % 3)) {
+          // printf("win + %d\n", self);
+          return 6 + self;
+#endif
+        } else {
+          printf("ERROR\n");
+          return -1000;
+        }
+      });
 
   printf("part 1: %d\n", part1);
 
-  auto part2 = compute_score(d, [](auto other, auto self) {
-    if (self == 2) {
-      // draw. own shape = other shape
-      return 3 + other;
-    } else if (self == 1) {
-      // loos. self = other - 1
-      return (other + 2 - 1) % 3 + 1;
-    } else if (self == 3) {
-      return 6 + (other + 1 - 1) % 3 + 1;
-    } else {
-      printf("ERROR\n");
-      return -1000;
-    }
-  });
+  auto part2 = compute_score(
+      d,
+#ifndef __NVCOMPILER
+      [](auto proxy) {
+        if (proxy.self() == 2) {
+          return 3 + proxy.opponent();
+        } else if (proxy.self() == 1) {
+          return (proxy.opponent() + 2 - 1) % 3 + 1;
+        } else if (proxy.self() == 3) {
+          return 6 + (proxy.opponent() + 1 - 1) % 3 + 1;
+#else
+      [](auto other, auto self) {
+        if (self == 2) {
+          // draw. own shape = other shape
+          return 3 + other;
+        } else if (self == 1) {
+          // loos. self = other - 1
+          return (other + 2 - 1) % 3 + 1;
+        } else if (self == 3) {
+          return 6 + (other + 1 - 1) % 3 + 1;
+#endif
+        } else {
+          printf("ERROR\n");
+          return -1000;
+        }
+      });
 
   printf("part 2: %d\n", part2);
 
