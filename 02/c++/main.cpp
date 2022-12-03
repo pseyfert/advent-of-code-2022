@@ -6,7 +6,7 @@ auto input(const std::filesystem::path& inpath) {
   SOA::Container<std::vector, unprocessed::skin> retval;
 
   ranges::for_each(ranges::getlines_view(instream), [&retval](const auto line) {
-    auto opponent_move = [](const auto& letter) -> short {
+    auto opponent_move = [](const auto& letter) -> data_t {
       if (letter == 'A') {
         return 1;
       } else if (letter == 'B') {
@@ -18,7 +18,7 @@ auto input(const std::filesystem::path& inpath) {
         return -100;
       }
     };
-    auto self_move = [](const auto& letter) -> short {
+    auto self_move = [](const auto& letter) -> data_t {
       if (letter == 'X') {
         return 1;
       } else if (letter == 'Y') {

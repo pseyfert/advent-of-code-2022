@@ -14,9 +14,11 @@
 
 #include "range/v3/range/conversion.hpp"
 
+using data_t = uint16_t;
+
 namespace unprocessed {
-SOAFIELD_TRIVIAL(opponent, opponent, short);
-SOAFIELD_TRIVIAL(self, self, short);
+SOAFIELD_TRIVIAL(opponent, opponent, data_t);
+SOAFIELD_TRIVIAL(self, self, data_t);
 SOASKIN_TRIVIAL(skin, opponent, self);
 }  // namespace unprocessed
 

@@ -21,7 +21,7 @@ auto compute_score(
       input.template begin<self>(),
 #endif
       // init
-      0,
+      static_cast<data_t>(0),
       // reduce
       std::plus(),
       // transform
@@ -33,14 +33,14 @@ int part1(const SOA::Container<std::vector, unprocessed::skin>& input) {
       input,
 #ifndef __NVCOMPILER
       [](auto proxy) {
-        auto o = proxy.opponent();
-        auto s = proxy.self();
-        if (o == s) {
-          return 3 + s;
-        } else if ((o % 3) == ((s + 1) % 3)) {
-          return 0 + s;
-        } else if (((o + 1) % 3) == (s % 3)) {
-          return 6 + s;
+        // auto d = (proxy.opponent() - proxy.self()) % 3;
+        auto d = proxy.opponent() - proxy.self();
+        if (d == 0) {
+          return 3 + proxy.self();
+        } else if ((d == 1) || (d == -2)) {
+          return 0 + proxy.self();
+        } else if ((d == 2) || (d == -1)) {
+          return 6 + proxy.self();
 #else
       [](auto other, auto self) {
         if (other == self) {
@@ -55,7 +55,7 @@ int part1(const SOA::Container<std::vector, unprocessed::skin>& input) {
 #endif
         } else {
           // printf("ERROR\n");
-          return -1000;
+          __builtin_unreachable();
         }
       });
 }
@@ -84,7 +84,7 @@ int part2(const SOA::Container<std::vector, unprocessed::skin>& input) {
 #endif
         } else {
           // printf("ERROR\n");
-          return -1000;
+          __builtin_unreachable();
         }
       });
 }

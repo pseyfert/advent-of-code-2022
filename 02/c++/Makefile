@@ -1,6 +1,6 @@
 DEPDIR := .deps
 
-CPPFLAGS=-I/home/pseyfert/coding/explore-SOAContainer/install/include -I/home/pseyfert/coding/explore-rangev3/install-range-v3/include
+CPPFLAGS=-isystem /home/pseyfert/coding/explore-SOAContainer/install/include -isystem /home/pseyfert/coding/explore-rangev3/install-range-v3/include
 
 ### NVC++
 # CXX=/opt/nvidia/hpc_sdk/Linux_x86_64/2022/compilers/bin/nvc++
@@ -10,7 +10,7 @@ CPPFLAGS=-I/home/pseyfert/coding/explore-SOAContainer/install/include -I/home/ps
 CXXFLAGS=-Wall -Wextra --std=c++20 -O3 -march=native -g
 LDLIBS=-L/home/pseyfert/coding/explore-rangev3/install-range-v3/lib -ltbb
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
-parts.o : CXXFLAGS += -fopt-info-vec-missed
+parts.o : CXXFLAGS += -fopt-info-vec-all
 
 all: main
 
