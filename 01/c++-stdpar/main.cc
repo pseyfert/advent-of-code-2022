@@ -6,7 +6,7 @@
 #include <vector>
 
 int res(std::vector<int>& data) {
-  partial_sort(
+  nth_element(
       std::execution::par_unseq, data.begin(), data.begin() + 3, data.end(),
       std::greater{});
   printf("part 1 %d\n", data.front());

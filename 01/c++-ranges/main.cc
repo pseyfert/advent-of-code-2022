@@ -17,6 +17,7 @@ void all(const std::filesystem::path& inpath) {
   auto data = ranges::getlines_view(instream) | ranges::to_vector;
 
   std::array<int, 3> dest;
+  // would be nice to use nth_elemnt here
   std::ranges::partial_sort_copy(
       data | ranges::views::chunk_by([](auto, auto s) {
         return !s.empty();
