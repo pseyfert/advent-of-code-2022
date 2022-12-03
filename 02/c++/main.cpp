@@ -36,33 +36,6 @@ auto input(const std::filesystem::path& inpath) {
   return retval;
 }
 
-template <typename T, typename F>
-auto compute_score(T& input, F&& f) {
-  using namespace unprocessed;
-  return std::transform_reduce(
-      // std::execution::par_unseq,
-      std::execution::unseq,
-#ifndef __NVCOMPILER
-      // first1
-      input.begin(),
-      // last1
-      input.end(),
-#else
-      // first1
-      input.template begin<opponent>(),
-      // last1
-      input.template end<opponent>(),
-      // first2
-      input.template begin<self>(),
-#endif
-      // init
-      0,
-      // reduce
-      std::plus(),
-      // transform
-      f);
-}
-
 int main(int argc, char** argv) {
   auto d = input(argv[1]);
   auto part1_ = part1(d);
