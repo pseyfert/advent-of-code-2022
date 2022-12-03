@@ -2,6 +2,7 @@
 #include <array>
 #include <cctype>
 #include <compare>
+#include <execution>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -38,6 +39,16 @@ auto part1(T& data) {
     std::ranges::sort(compartment_1);
     std::ranges::sort(compartment_2);
     // std::cout << compartment_1 << compartment_2 << '\n';
+    std::vector<char> match;
+
+#ifdef USE_SET_INTERSECTION
+    // This doesn't use knowledge that there will be exactly one match, but it
+    // has execution policy support
+    std::set_intersection(
+        std::execution::par_unseq, compartment_1.begin(), compartment_1.end(),
+        compartment_2.begin(), compartment_2.end(), std::back_inserter(match));
+    auto score = letter_priority(match[0]);
+#else
     auto score = [&]() {
       auto it1 = compartment_1.begin();
       auto it2 = compartment_2.begin();
@@ -61,6 +72,7 @@ auto part1(T& data) {
         }
       }
     }();
+#endif
     std::inplace_merge(
         line.begin(), line.begin() + line_length / 2, line.end());
     return std::make_tuple(line, score);
@@ -73,9 +85,7 @@ auto part2(T& data) {
 
   return ranges::views::transform(
       data | ranges::views::chunk(group_size), [](auto group) {
-        // for (auto group : data | ranges::views::chunk(group_size)) {
         auto g_iter = group.begin();
-
         // I *guess* I need to buffer the elves myself.
         auto elves = std::array{
             *(g_iter++),
@@ -83,8 +93,10 @@ auto part2(T& data) {
             *(g_iter++),
         };
 
-        // ranges::for_each(
-        //     elves, [](auto& elve) { std::ranges::sort(std::get<0>(elve)); });
+        auto score1 = ranges::accumulate(
+            elves, 0, std::plus(), [](auto& e_s) { return std::get<1>(e_s); });
+
+#ifndef USE_SET_INTERSECTION
         using iter_t = decltype(std::get<0>(elves[0]).begin());
         using array_t = typename std::array<iter_t, group_size>;
 
@@ -95,8 +107,6 @@ auto part2(T& data) {
           iters[i] = std::get<0>(elves[i]).begin();
         }
 
-        auto score1 = ranges::accumulate(
-            elves, 0, std::plus(), [](auto& e_s) { return std::get<1>(e_s); });
         auto score2 = [&]() {
           while (true) {
             if (*iters[0] == *iters[1] && *iters[1] == *iters[2]) {
@@ -121,6 +131,19 @@ auto part2(T& data) {
             // }
           }
         }();
+#else
+        std::vector<char> buffer;
+        std::vector<char> match;
+        std::set_intersection(
+            std::execution::par_unseq, std::get<0>(elves[0]).begin(),
+            std::get<0>(elves[0]).end(), std::get<0>(elves[1]).begin(),
+            std::get<0>(elves[1]).end(), std::back_inserter(buffer));
+        std::set_intersection(
+            std::execution::par_unseq, std::get<0>(elves[2]).begin(),
+            std::get<0>(elves[2]).end(), buffer.begin(),
+            buffer.end(), std::back_inserter(match));
+        auto score2 = letter_priority(match[0]);
+#endif
         return std::make_pair(score1, score2);
       });
 }
