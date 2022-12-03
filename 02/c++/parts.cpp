@@ -34,13 +34,7 @@ int part1(const SOA::Container<std::vector, unprocessed::skin>& input) {
 #ifndef __NVCOMPILER
       [](auto proxy) {
         // auto d = (proxy.opponent() - proxy.self()) % 3;
-        auto d = proxy.opponent() - proxy.self();
-        if (d == 0) {
-          return 3 + proxy.self();
-        } else if ((d == 1) || (d == -2)) {
-          return 0 + proxy.self();
-        } else if ((d == 2) || (d == -1)) {
-          return 6 + proxy.self();
+        return score(proxy.opponent(), proxy.self());
 #else
       [](auto other, auto self) {
         if (other == self) {
@@ -52,11 +46,11 @@ int part1(const SOA::Container<std::vector, unprocessed::skin>& input) {
         } else if (((other + 1) % 3) == (self % 3)) {
           // printf("win + %d\n", self);
           return 6 + self;
-#endif
         } else {
           // printf("ERROR\n");
           __builtin_unreachable();
         }
+#endif
       });
 }
 
@@ -68,9 +62,11 @@ int part2(const SOA::Container<std::vector, unprocessed::skin>& input) {
         if (proxy.self() == 2) {
           return 3 + proxy.opponent();
         } else if (proxy.self() == 1) {
-          return (proxy.opponent() + 2 - 1) % 3 + 1;
+          if (proxy.opponent() == 1) return 3;
+          else return proxy.opponent() - 1;
         } else if (proxy.self() == 3) {
-          return 6 + (proxy.opponent() + 1 - 1) % 3 + 1;
+          if (proxy.opponent() == 3) return 6 + 1;
+          else return 6 + proxy.opponent() + 1;
 #else
       [](auto other, auto self) {
         if (self == 2) {

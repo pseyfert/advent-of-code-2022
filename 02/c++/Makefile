@@ -2,19 +2,23 @@ DEPDIR := .deps
 
 CPPFLAGS=-isystem /home/pseyfert/coding/explore-SOAContainer/install/include -isystem /home/pseyfert/coding/explore-rangev3/install-range-v3/include
 
+all: main
+
 ### NVC++
 # CXX=/opt/nvidia/hpc_sdk/Linux_x86_64/2022/compilers/bin/nvc++
 # TARGET_ARCH=-gpu=ccnative --c++20 -acc=gpu -stdpar=gpu -Minfo=stdpar
+# main: main.o parts.o
 
 ### G++
-CXXFLAGS=-Wall -Wextra --std=c++20 -O3 -march=native -g
-LDLIBS=-L/home/pseyfert/coding/explore-rangev3/install-range-v3/lib -ltbb
+CXXFLAGS=-Wall -Wextra --std=c++20 -O3 -g -march=native
+LDLIBS=-L/home/pseyfert/coding/explore-rangev3/install-range-v3/lib -ltbb -L/home/pseyfert/coding/vcdevel/install/lib/ -lVc
+CPPFLAGS+=-isystem /home/pseyfert/coding/vcdevel/install/include/
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 parts.o : CXXFLAGS += -fopt-info-vec-all
+main: main.o parts.o scores.o
 
-all: main
 
-main: main.o parts.o
+# common
 
 main : CC = ${CXX}
 
