@@ -1,3 +1,4 @@
+#pragma once
 #include <array>
 #include <boost/container/static_vector.hpp>
 #include <filesystem>
@@ -5,6 +6,7 @@
 #include <iostream>
 
 #include "calendar_copy_and_paste.h"
+#include "parse_int.h"
 
 #include <meta/meta.hpp>
 #include <range/v3/algorithm/find_if.hpp>
@@ -14,9 +16,20 @@
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/getlines.hpp>
+#include <range/v3/view/split.hpp>
 #include <range/v3/view/stride.hpp>
 #include <range/v3/view/subrange.hpp>
 #include <range/v3/view/transform.hpp>
+
+template <typename T>
+void print_arena(const T& arena) {
+  std::cout << "==========================\n";
+  for (const auto& stack : arena) {
+    std::cout << ranges::view::transform(stack, [](auto x) { return x; })
+              << '\n';
+  }
+  std::cout << "--------------------------\n";
+}
 
 int main(int argc, char** argv) {
   if (argc != 2) {
@@ -45,6 +58,36 @@ int main(int argc, char** argv) {
       arena[std::get<0>(p)].push_back(c);
     }
   }
+
+  for (auto cmd : ranges::subrange(split_point + 1, buffer.end())) {
+    auto numit = (cmd | ranges::view::split(' ') | ranges::view::drop(1) |
+                  ranges::view::stride(2))
+                     .begin();
+    // print_arena(arena);
+
+    auto amount = parse_int(*(numit++));
+    auto from = parse_int(*(numit++)) - 1;
+    auto to = parse_int(*(numit++)) - 1;
+
+#ifdef PART1
+    arena[to].insert(
+        arena[to].begin(), arena[from].rend() - amount, arena[from].rend());
+#elif defined(PART2)
+    arena[to].insert(
+        arena[to].begin(), arena[from].begin(), arena[from].begin() + amount);
+#else
+#error "must be either part 1 or part 2"
+#endif
+    arena[from].erase(arena[from].begin(), arena[from].begin() + amount);
+  }
+
+  // print_arena(arena);
+
+  auto tops =
+      arena | ranges::view::filter([](auto stack) { return !stack.empty(); }) |
+      ranges::view::transform([](auto stack) { return stack.front(); }) |
+      ranges::to<std::string>();
+  std::cout << tops << '\n';
 
   return 0;
 }
