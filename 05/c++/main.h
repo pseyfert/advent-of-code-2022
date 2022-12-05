@@ -8,6 +8,8 @@
 #include "calendar_copy_and_paste.h"
 #include "parse_int.h"
 
+#include "aoc_utils/to.hpp"
+
 #include <meta/meta.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <range/v3/range/conversion.hpp>
@@ -38,7 +40,8 @@ int main(int argc, char** argv) {
   std::filesystem::path in_path(argv[1]);
   std::ifstream instream(in_path);
 
-  auto buffer = ranges::getlines_view(instream) | ranges::to_vector;
+  auto buffer =
+      aoc_utils::to<std::vector<std::string>>(ranges::getlines_view(instream));
 
   auto split_point =
       ranges::find_if(buffer, [](const auto line) { return line.empty(); });
@@ -54,9 +57,9 @@ int main(int argc, char** argv) {
                     ranges::view::filter([](auto c) { return c != ' '; }) |
                     ranges::view::drop_last(1);
            }))) {
-    for (const auto c : std::get<1>(p)) {
-      arena[std::get<0>(p)].push_back(c);
-    }
+    arena[std::get<0>(p)] =
+        aoc_utils::to<boost::container::static_vector<char, 60>>(
+            std::get<1>(p));
   }
 
   for (auto cmd : ranges::subrange(split_point + 1, buffer.end())) {

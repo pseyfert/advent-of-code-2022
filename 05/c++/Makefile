@@ -1,19 +1,18 @@
 DEPDIR := .deps
 
-CPPFLAGS=-isystem /home/pseyfert/coding/explore-rangev3/install-range-v3/include
+CPPFLAGS=-isystem /home/pseyfert/coding/explore-rangev3/install-range-v3/include -I../../utils/include
 
 all: part1 part2
 
 ### G++
-CXXFLAGS=-Wall -Wextra --std=c++20 -O3 -g -march=native
+CXXFLAGS=-Wall -Wextra --std=c++20 -O3 -g -march=native -fconcepts-diagnostics-depth=3
 LDLIBS=-L/home/pseyfert/coding/explore-rangev3/install-range-v3/lib
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
 
 # common
 
-part1 : CC = ${CXX}
-part2 : CC = ${CXX}
+%: CC=${CXX}
 
 %.o : %.cpp
 %.o : %.cpp Makefile $(DEPDIR)/%.d | $(DEPDIR)
@@ -21,7 +20,7 @@ part2 : CC = ${CXX}
 
 # copied from https://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
 
-SRCS  := $(wildcard *.cc *.cpp)
+SRCS := $(wildcard *.cc *.cpp)
 
 # copied from default `make -p`
 COMPILE.cc = $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
