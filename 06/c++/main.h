@@ -32,8 +32,16 @@ int main(int argc, char** argv) {
 
   // TODO:
   // can probably do fancier parallel algorithms by splitting into multiple
-  // buffered subranges [begin, begin+chunksize+stride) [begin+chunksize,
-  // begin+2chunksize+stride) but don't want to put in more time now.
+  // buffered subranges
+  //
+  // [begin, begin+chunksize+stride)
+  // [begin+chunksize, begin+2chunksize+stride)
+  // ...
+  // [begin + i*chunksize, begin + (i+1)*chunksize + stride)
+  //
+  // (off-by-one error?)
+  //
+  // but don't want to put in more time now.
   auto the_line =
       *(ranges::getlines_view(instream) | ranges::view::take(1)).begin() |
       ranges::to<std::string>();
