@@ -7,6 +7,10 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#if __has_include("SOAContainer.h")
+#define HAS_SOA
+#include "SOAContainer.h"
+#endif
 
 namespace aoc_utils {
 
@@ -26,10 +30,10 @@ using detect_emplace_back_t =
 
 template <typename C, typename... T>
 struct to_write_two {
-  using emplaced_type =
-      decltype(std::declval<C>().emplace_back(std::declval<T>()...));
+  // NB: for SOAContainer the return type of emplace_back differs from
+  // value_type.
   constexpr static bool value =
-      std::is_constructible_v<std::decay_t<emplaced_type>, T...>;
+      std::is_constructible_v<typename C::value_type, T...>;
 };
 
 template <typename, typename>
@@ -42,10 +46,29 @@ struct is_tuple : std::false_type {};
 template <typename... T>
 struct is_tuple<std::tuple<T...>> : std::true_type {};
 
+#ifdef HAS_SOA
+template <typename>
+struct is_soa : std::false_type {};
+template <
+    template <typename...> class C, template <typename> class S, typename... F>
+struct is_soa<SOA::Container<C, S, F...>> : std::true_type {};
+template <typename T>
+concept SOA = requires {
+  is_soa<T>::value;
+};
+#endif
 template <typename T>
 concept Pushable = requires(T m) {
-  m.push_back(*m.begin());
+  m.push_back(std::declval<typename std::decay_t<T>::value_type>());
 };
+template <typename T>
+concept PushableNotSOA = requires {
+  requires Pushable<T>;
+#ifdef HAS_SOA
+  !is_soa<T>::value;
+#endif
+};
+
 }  // namespace detail
 
 // About the requires here:
@@ -55,7 +78,7 @@ concept Pushable = requires(T m) {
 // Therefore, I only accept tuples if all goes through.
 //
 // The forwarding is somewhat guess work.
-template <detail::Pushable OUT, typename IN>
+template <detail::PushableNotSOA OUT, typename IN>
 requires(
     (!(detail::is_tuple<
          typename ranges::range_value_t<std::decay_t<IN>>>::value) ||
@@ -87,7 +110,6 @@ requires(
              std::decay_t<ranges::range_value_t<std::decay_t<IN>>>>::
              value))  // avoid line join
     auto to(IN&& in) {
-  // didn't manage the part below as requires :(
   OUT retval;
   if constexpr (ranges::sized_range<std::decay_t<IN>>) {
     retval.reserve(ranges::size(in));
