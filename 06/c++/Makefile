@@ -14,6 +14,9 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
 %: CC=${CXX}
 
+# delete builtin. Otherwise %: $.cpp with (LINK.cpp) kicks in
+% : %.cpp
+
 %.o : %.cpp
 %.o : %.cpp Makefile $(DEPDIR)/%.d | $(DEPDIR)
 	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
@@ -30,3 +33,8 @@ $(DEPDIR): ; @mkdir -p $@
 DEPFILES := $(SRCS:%.cpp=$(DEPDIR)/%.d)
 $(DEPFILES):
 include $(wildcard $(DEPFILES))
+
+clean:
+	rm -f part1 part2 *.o
+
+.PHONY: clean all
