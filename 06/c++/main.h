@@ -5,6 +5,7 @@
 #include <range/v3/algorithm/count.hpp>
 #include <range/v3/distance.hpp>
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/range/primitives.hpp>  // empty
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/getlines.hpp>
@@ -29,6 +30,10 @@ int main(int argc, char** argv) {
   std::filesystem::path in_path(argv[1]);
   std::ifstream instream(in_path);
 
+  // TODO:
+  // can probably do fancier parallel algorithms by splitting into multiple
+  // buffered subranges [begin, begin+chunksize+stride) [begin+chunksize,
+  // begin+2chunksize+stride) but don't want to put in more time now.
   auto the_line =
       *(ranges::getlines_view(instream) | ranges::view::take(1)).begin() |
       ranges::to<std::string>();
@@ -38,17 +43,11 @@ int main(int argc, char** argv) {
         ranges::view::filter([](auto indexed_quartet) {
           auto& quartet = std::get<1>(indexed_quartet);
 
-          // gets extremely lazy towards the end, count for every letter how
-          // often it occurs, but take only the first count that isn't 1. If
-          // there is such a count, we don't have the marker.
-          bool found_offender =
-              (1 ==
-               ranges::distance(
-                   quartet | ranges::view::transform([&quartet](auto letter) {
-                     return ranges::count(quartet, letter);
-                   }) |
-                   ranges::view::filter([](auto count) { return count != 1; }) |
-                   ranges::view::take(1)));
+          bool found_offender = !(ranges::empty(
+              quartet | ranges::view::transform([&quartet](auto letter) {
+                return ranges::count(quartet, letter);
+              }) |
+              ranges::view::filter([](auto count) { return count != 1; })));
 
           return !found_offender;
         }) |
