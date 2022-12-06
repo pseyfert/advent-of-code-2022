@@ -1,3 +1,4 @@
+#pragma once
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -11,6 +12,12 @@
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
 #include <string>
+
+#ifdef PART1
+constexpr std::size_t marker_size = 4;
+#else
+constexpr std::size_t marker_size = 14;
+#endif
 
 template <typename T>
 struct warner;
@@ -27,7 +34,7 @@ int main(int argc, char** argv) {
       ranges::to<std::string>();
 
   auto indexed_marker =
-      *(ranges::view::enumerate(the_line | ranges::view::sliding(4)) |
+      *(ranges::view::enumerate(the_line | ranges::view::sliding(marker_size)) |
         ranges::view::filter([](auto indexed_quartet) {
           auto& quartet = std::get<1>(indexed_quartet);
 
@@ -48,7 +55,7 @@ int main(int argc, char** argv) {
         ranges::view::take(1))
            .begin();
 
-  std::cout << std::get<0>(indexed_marker) + 4 << '\n';
+  std::cout << std::get<0>(indexed_marker) + marker_size << '\n';
 
   return 0;
 }

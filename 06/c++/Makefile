@@ -2,7 +2,7 @@ DEPDIR := .deps
 
 CPPFLAGS=-isystem /home/pseyfert/coding/explore-rangev3/install-range-v3/include -I../../utils/include
 
-all: main
+all: part1 part2
 
 ### G++
 CXXFLAGS=-Wall -Wextra --std=c++20 -O3 -g -march=native -fconcepts-diagnostics-depth=3
