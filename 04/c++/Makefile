@@ -21,6 +21,9 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
 main : CC = ${CXX}
 
+# delete builtin. Otherwise %: $.cpp with (LINK.cpp) kicks in
+% : %.cpp
+
 %.o : %.cpp
 %.o : %.cpp Makefile $(DEPDIR)/%.d | $(DEPDIR)
 	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
@@ -30,10 +33,15 @@ main : CC = ${CXX}
 SRCS  := $(wildcard *.cc *.cpp)
 
 # copied from default `make -p`
-COMPILE.cc = $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
+COMPILE.cpp = $(CXX) $(DEPFLAGS) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
 
 $(DEPDIR): ; @mkdir -p $@
 
 DEPFILES := $(SRCS:%.cpp=$(DEPDIR)/%.d)
 $(DEPFILES):
 include $(wildcard $(DEPFILES))
+
+clean:
+	rm -f main *.o
+
+.PHONY: clean all
