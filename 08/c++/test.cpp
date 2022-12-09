@@ -34,19 +34,19 @@ TEST(example, part2_tests) {
   // 33549
   // 35390
 
-  for (auto i = 0; i < 5; ++i) {
-    EXPECT_EQ(view_northwards(forest, i, 0), 0);
+  for (idx_t<x_tag> i{0}; i.data < 5; ++i) {
+    EXPECT_EQ(view_northwards(forest, i, idx_t<y_tag>(0)), 0);
   }
-  EXPECT_EQ(view_northwards(forest, 0, 1), 1);
-  EXPECT_EQ(view_northwards(forest, 1, 1), 1);
-  EXPECT_EQ(view_northwards(forest, 2, 1), 1);
-  EXPECT_EQ(view_northwards(forest, 3, 1), 1);
-  EXPECT_EQ(view_northwards(forest, 4, 1), 1);
-  EXPECT_EQ(view_northwards(forest, 3, 4), 4);
-  EXPECT_EQ(view_northwards(forest, 4, 3), 3);
+  EXPECT_EQ(view_northwards(forest, idx_t<x_tag>(0), idx_t<y_tag>(1)), 1);
+  EXPECT_EQ(view_northwards(forest, idx_t<x_tag>(1), idx_t<y_tag>(1)), 1);
+  EXPECT_EQ(view_northwards(forest, idx_t<x_tag>(2), idx_t<y_tag>(1)), 1);
+  EXPECT_EQ(view_northwards(forest, idx_t<x_tag>(3), idx_t<y_tag>(1)), 1);
+  EXPECT_EQ(view_northwards(forest, idx_t<x_tag>(4), idx_t<y_tag>(1)), 1);
+  EXPECT_EQ(view_northwards(forest, idx_t<x_tag>(3), idx_t<y_tag>(4)), 4);
+  EXPECT_EQ(view_northwards(forest, idx_t<x_tag>(4), idx_t<y_tag>(3)), 3);
 
-  EXPECT_EQ(score(forest, 2, 1), 4);
-  EXPECT_EQ(score(forest, 2, 3), 8);
+  EXPECT_EQ(score(forest, idx_t<x_tag>(2), idx_t<y_tag>(1)), 4);
+  EXPECT_EQ(score(forest, idx_t<x_tag>(2), idx_t<y_tag>(3)), 8);
 
   EXPECT_EQ(part2(forest), 8);
 }
@@ -64,14 +64,14 @@ TEST(example, flat_example) {
   ASSERT_TRUE(thespan.extent(1) == 5);
 
   // codegenerated
-  EXPECT_EQ(thespan(0, 0), 3);
-  EXPECT_EQ(thespan(0, 1), 0);
-  EXPECT_EQ(thespan(0, 2), 3);
-  EXPECT_EQ(thespan(0, 3), 7);
-  EXPECT_EQ(thespan(0, 4), 3);
-  EXPECT_EQ(thespan(1, 0), 2);
-  EXPECT_EQ(thespan(1, 1), 5);
-  EXPECT_EQ(thespan(1, 2), 5);
-  EXPECT_EQ(thespan(1, 3), 1);
-  EXPECT_EQ(thespan(1, 4), 2);
+  EXPECT_EQ(thespan(idx_t<y_tag>(0), idx_t<x_tag>(0)), 3);
+  EXPECT_EQ(thespan(idx_t<y_tag>(0), idx_t<x_tag>(1)), 0);
+  EXPECT_EQ(thespan(idx_t<y_tag>(0), idx_t<x_tag>(2)), 3);
+  EXPECT_EQ(thespan(idx_t<y_tag>(0), idx_t<x_tag>(3)), 7);
+  EXPECT_EQ(thespan(idx_t<y_tag>(0), idx_t<x_tag>(4)), 3);
+  EXPECT_EQ(thespan(idx_t<y_tag>(1), idx_t<x_tag>(0)), 2);
+  EXPECT_EQ(thespan(idx_t<y_tag>(1), idx_t<x_tag>(1)), 5);
+  EXPECT_EQ(thespan(idx_t<y_tag>(1), idx_t<x_tag>(2)), 5);
+  EXPECT_EQ(thespan(idx_t<y_tag>(1), idx_t<x_tag>(3)), 1);
+  EXPECT_EQ(thespan(idx_t<y_tag>(1), idx_t<x_tag>(4)), 2);
 }
