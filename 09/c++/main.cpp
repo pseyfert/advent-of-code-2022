@@ -56,8 +56,12 @@ int main(int argc, char** argv) {
   using acc_t = std::vector<pos>;
 
   auto tail_poses2 = std::transform_reduce(
-      std::execution::par_unseq, unrolled_ropes.begin(), unrolled_ropes.end(),
-      acc_t{},
+#ifndef __NVCOMPILER
+      std::execution::par_unseq,
+#else
+      std::execution::unseq,
+#endif
+      unrolled_ropes.begin(), unrolled_ropes.end(), acc_t{},
       [](const acc_t& lhs, const acc_t& rhs) {
         acc_t retval;
         std::set_union(
