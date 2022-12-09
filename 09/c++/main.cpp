@@ -30,6 +30,17 @@ int main(int argc, char** argv) {
           ranges::view::join,
       ranges::views::repeat_n('N', 9)));
 
+  auto s1acc = std::accumulate(
+      steps.begin(), steps.end(),
+      std::pair<std::unordered_set<pos, myposhash>, state1>{},
+      [](std::pair<std::unordered_set<pos, myposhash>, state1> acc, char d) {
+        acc.second.move(d);
+        acc.first.insert(acc.second.TAIL);
+        return acc;
+      });
+
+  std::cout << "part 1 " << s1acc.first.size() << '\n';
+
   std::vector<state2> unrolled_ropes;
   unrolled_ropes.resize(steps.size());
 
@@ -38,7 +49,6 @@ int main(int argc, char** argv) {
   // different types, I don't see how associativity can be required. It appears
   // my implementation does the right thing in this non-associative case with
   // `seq`.
-
   std::inclusive_scan(
       std::execution::seq, steps.begin(), steps.end(), unrolled_ropes.begin(),
       [](const state2& prev, char d) { return prev.pull(d); }, state2{});
