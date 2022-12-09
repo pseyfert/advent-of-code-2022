@@ -25,7 +25,9 @@ auto parse_int(std::string_view s) {
 container_t input(const std::filesystem::path& in_path) {
   std::ifstream instream(in_path);
 
-  // NB: since moving to aoc_utils, filling the container with nvc++ is broken. check the git history.
+  // NB: since moving to aoc_utils, filling the container with nvc++ is broken.
+  // NB2: fixed with
+  // https://forums.developer.nvidia.com/t/compilation-failure-with-piped-ranges-in-range-v3-for-each-and-nvc-22-11/236350/2
   return aoc_utils::to<container_t>(
       ranges::getlines_view(instream) |
       ranges::view::transform([](const auto line) {
@@ -36,7 +38,8 @@ container_t input(const std::filesystem::path& in_path) {
                                 ranges::views::transform([](auto section_str) {
                                   std::string_view section_str_view{
                                       &*section_str.begin(),
-                                      ranges::distance(section_str)};
+                                      static_cast<std::size_t>(
+                                          ranges::distance(section_str))};
 
                                   return parse_int(section_str_view);
                                 });  // range of two integers
