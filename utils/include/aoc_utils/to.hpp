@@ -12,6 +12,9 @@
 #include "SOAContainer.h"
 #endif
 
+// NB: With nvc++ this may may need in practice https://github.com/ericniebler/range-v3/commit/c097c0e8d1378d95763426f024fbfeea745b4093
+// cf https://forums.developer.nvidia.com/t/compilation-failure-with-piped-ranges-in-range-v3-for-each-and-nvc-22-11/236350/2 .
+
 namespace aoc_utils {
 
 namespace detail {

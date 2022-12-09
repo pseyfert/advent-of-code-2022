@@ -48,8 +48,8 @@ TEST(more, stuff) {
   EXPECT_TRUE(std::ranges::range<back_aware_vector<std::string>>);
   EXPECT_TRUE(std::ranges::sized_range<back_aware_vector<std::string>>);
   EXPECT_TRUE(std::ranges::forward_range<back_aware_vector<std::string>>);
-  // EXPECT_TRUE(std::ranges::random_access_range<back_aware_vector<std::string>>);
-  // EXPECT_TRUE(std::ranges::contiguous_range<back_aware_vector<std::string>>);
+  EXPECT_TRUE(std::ranges::random_access_range<back_aware_vector<std::string>>);
+  EXPECT_TRUE(std::ranges::contiguous_range<back_aware_vector<std::string>>);
 
   stuff.push_back("foo");
   stuff.push_back("bar");
@@ -65,6 +65,11 @@ TEST(more, stuff) {
   EXPECT_EQ(*it++, std::string{"bar"});
   EXPECT_TRUE(it == stuff.end());
   EXPECT_TRUE(it == end_reached);
+
+  it = stuff.begin();
+  EXPECT_TRUE(it + 2 == end_reached);
+  it += 1;
+  EXPECT_EQ(it - stuff.begin(), 1);
 }
 
 TEST(range, back_aware) {
