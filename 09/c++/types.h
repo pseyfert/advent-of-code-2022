@@ -88,7 +88,7 @@ struct state2 {
 
   state_vec m_data;
 
-  state2 pull(char d) {
+  state2 pull(char d) const {
     // This is meant to work as a pipeline.
     // i.e.:
     //  * when knot 1 makes step 1, none of the others move.
@@ -183,7 +183,7 @@ struct state2 {
     return state2{retval};
   }
 
-  pos move(char d, pos HEAD) {
+  static pos move(char d, pos HEAD) {
     if (d == 'U') {
       HEAD.first++;
     } else if (d == 'D') {
