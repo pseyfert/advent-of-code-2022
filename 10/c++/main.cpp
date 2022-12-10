@@ -6,6 +6,7 @@
 #include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/any_view.hpp>
+#include <range/v3/view/chunk.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/enumerate.hpp>
@@ -28,7 +29,6 @@ struct OP {
 
 struct system_state {
   int m_reg;
-  bool m_light;
 };
 
 int main(int argc, char** argv) {
@@ -90,7 +90,27 @@ int main(int argc, char** argv) {
       ,
       0, std::plus());
 
+  auto part2 = processed | ranges::view::transform([](auto step_and_state) {
+                 auto& [step, state] = step_and_state;
+                 auto pixel_aim = (step - 1) % 40;
+                 if (state.m_reg == pixel_aim - 1 || state.m_reg == pixel_aim ||
+                     state.m_reg == pixel_aim + 1) {
+                   return '#';
+                 }
+                 return '.';
+               }) |
+               ranges::view::chunk(40);
+
   std::cout << "part1 = " << part1 << '\n';
+
+  std::cout << "part2:\n";
+
+  ranges::for_each(part2, [](auto line) {
+      // should also work with join. but didn't compile and didn't bother to investigate.
+      // OCR would be nice now, used a python OCR in the past but … pfff
+    auto l = ranges::to<std::string>(line);
+    std::cout << l << '\n';
+  });
 
   return 0;
 }
