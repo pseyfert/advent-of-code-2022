@@ -26,6 +26,11 @@ struct OP {
   int m_arg;
 };
 
+struct system_state {
+  int m_reg;
+  bool m_light;
+};
+
 int main(int argc, char** argv) {
   const std::filesystem::path& in_path{argv[1]};
   std::ifstream instream(in_path);
@@ -56,27 +61,31 @@ int main(int argc, char** argv) {
       }) |
       ranges::view::join);
 
-  auto apply = [](int register_, OP op) {
+  auto apply = [](system_state register_, OP op) {
     if (op.m_code == OpCode::add_2) {
-      return register_ + op.m_arg;
-    } else {
-      return register_;
+      register_.m_reg += op.m_arg;
     }
+    return register_;
   };
 
-  auto part1 = ranges::accumulate(
-      // auto selected =
+  auto processed =
       ranges::view::enumerate(
-          steps | ranges::view::exclusive_scan(1, std::move(apply))) |
-          ranges::view::filter([](auto opid_and_state) {
-            auto& step = opid_and_state.first;
-            return (
-                step == 19 || step == 59 || step == 99 || step == 139 ||
-                step == 179 || step == 219);
-          }) |
-          ranges::view::transform([](auto opid_and_state) {
-            return (1 + opid_and_state.first) * opid_and_state.second;
-          })
+          steps | ranges::view::exclusive_scan(
+                      system_state{.m_reg = 1}, std::move(apply))) |
+      ranges::view::transform([](auto opid_and_state) {
+        opid_and_state.first++;
+        return opid_and_state;
+      });
+
+  auto part1 = ranges::accumulate(
+      processed | ranges::view::filter([](auto opid_and_state) {
+        auto& step = opid_and_state.first;
+        return (
+            step == 20 || step == 60 || step == 100 || step == 140 ||
+            step == 180 || step == 220);
+      }) | ranges::view::transform([](auto opid_and_state) {
+        return opid_and_state.first * opid_and_state.second.m_reg;
+      })
       //;
       ,
       0, std::plus());
