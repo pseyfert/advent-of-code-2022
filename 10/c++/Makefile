@@ -1,8 +1,13 @@
 DEPDIR := .deps
 
-CPPFLAGS=-isystem /home/pseyfert/coding/explore-rangev3/install-range-v3/include -I../../utils/include
+CPPFLAGS=-isystem /home/pseyfert/coding/explore-rangev3/install-range-v3/include -I../../utils/include -Iocr/aoc_ffi_ocr
 
 all: main
+
+main: ocr/aoc_ffi_ocr/target/release/libaoc_ffi_ocr.so
+
+ocr/aoc_ffi_ocr/target/release/libaoc_ffi_ocr.so:
+	cd ocr/aoc_ffi_ocr; cargo build --release
 
 test: LDLIBS+=-lgtest_main -lgtest -pthread
 
@@ -45,4 +50,4 @@ include $(wildcard $(DEPFILES))
 clean:
 	rm -f main test *.o
 
-.PHONY: clean all
+.PHONY: clean all ocr/aoc_ffi_ocr/target/release/libaoc_ffi_ocr.so

@@ -18,6 +18,7 @@
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
 #include <string>
+#include "aoc_ffi_ocr.h"
 #include "aoc_utils/to.hpp"
 
 enum class OpCode { noop, add_1, add_2 };
@@ -99,18 +100,12 @@ int main(int argc, char** argv) {
                  }
                  return '.';
                }) |
-               ranges::view::chunk(40);
+               ranges::view::chunk(40) | ranges::view::join('\n') |
+               ranges::to<std::string>();
 
   std::cout << "part1 = " << part1 << '\n';
 
-  std::cout << "part2:\n";
-
-  ranges::for_each(part2, [](auto line) {
-      // should also work with join. but didn't compile and didn't bother to investigate.
-      // OCR would be nice now, used a python OCR in the past but … pfff
-    auto l = ranges::to<std::string>(line);
-    std::cout << l << '\n';
-  });
+  aoc_ffi_ocr::print_ocr(part2.c_str(), "part2");
 
   return 0;
 }

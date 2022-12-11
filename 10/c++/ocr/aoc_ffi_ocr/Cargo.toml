@@ -1,0 +1,13 @@
+[package]
+name = "aoc_ffi_ocr"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+advent-of-code-ocr = "0.1.1"
+
+[build-dependencies]
+cbindgen = "0.24.3"
