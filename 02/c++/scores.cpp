@@ -2,6 +2,7 @@
 #include <immintrin.h>
 #include "Vc/Vc"
 #include "shared.h"
+#include "scores.h"
 
 __attribute__((const)) __m256i score(__m256i input1, __m256i input2) noexcept
     asm("_ZGVdN8vv__Z5scoreii");

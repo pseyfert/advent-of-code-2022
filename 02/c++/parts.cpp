@@ -1,3 +1,16 @@
+/*
+ * Copyright (C) 2022  Paul Seyfert
+ * Author: Paul Seyfert <pseyfert.mathphys@gmail.com>
+ *
+ * This software is distributed under the terms of the GNU General Public
+ * Licence version 3 (GPL Version 3), copied verbatim in the file "LICENSE".
+ */
+
+#include "parts.h"
+#include <algorithm>
+#include <execution>
+#include <numeric>
+#include "scores.h"
 #include "shared.h"
 
 template <typename F>
@@ -62,11 +75,15 @@ int part2(const SOA::Container<std::vector, unprocessed::skin>& input) {
         if (proxy.self() == 2) {
           return 3 + proxy.opponent();
         } else if (proxy.self() == 1) {
-          if (proxy.opponent() == 1) return 3;
-          else return proxy.opponent() - 1;
+          if (proxy.opponent() == 1)
+            return 3;
+          else
+            return proxy.opponent() - 1;
         } else if (proxy.self() == 3) {
-          if (proxy.opponent() == 3) return 6 + 1;
-          else return 6 + proxy.opponent() + 1;
+          if (proxy.opponent() == 3)
+            return 6 + 1;
+          else
+            return 6 + proxy.opponent() + 1;
 #else
       [](auto other, auto self) {
         if (self == 2) {

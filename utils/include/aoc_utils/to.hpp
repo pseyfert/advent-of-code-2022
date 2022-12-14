@@ -7,10 +7,6 @@
 #include <tuple>
 #include <type_traits>
 #include <utility>
-#if __has_include("SOAContainer.h")
-#define HAS_SOA
-#include "SOAContainer.h"
-#endif
 
 // NB: With nvc++ this may may need in practice https://github.com/ericniebler/range-v3/commit/c097c0e8d1378d95763426f024fbfeea745b4093
 // cf https://forums.developer.nvidia.com/t/compilation-failure-with-piped-ranges-in-range-v3-for-each-and-nvc-22-11/236350/2 .
@@ -49,17 +45,9 @@ struct is_tuple : std::false_type {};
 template <typename... T>
 struct is_tuple<std::tuple<T...>> : std::true_type {};
 
-#ifdef HAS_SOA
 template <typename>
 struct is_soa : std::false_type {};
-template <
-    template <typename...> class C, template <typename> class S, typename... F>
-struct is_soa<SOA::Container<C, S, F...>> : std::true_type {};
-template <typename T>
-concept SOA = requires {
-  is_soa<T>::value;
-};
-#endif
+
 template <typename T>
 concept Pushable = requires(T m) {
   m.push_back(std::declval<typename std::decay_t<T>::value_type>());
@@ -67,9 +55,7 @@ concept Pushable = requires(T m) {
 template <typename T>
 concept PushableNotSOA = requires {
   requires Pushable<T>;
-#ifdef HAS_SOA
   !is_soa<T>::value;
-#endif
 };
 
 }  // namespace detail

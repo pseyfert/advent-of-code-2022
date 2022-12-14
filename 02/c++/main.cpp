@@ -1,4 +1,21 @@
+/*
+ * Copyright (C) 2022  Paul Seyfert
+ * Author: Paul Seyfert <pseyfert.mathphys@gmail.com>
+ *
+ * This software is distributed under the terms of the GNU General Public
+ * Licence version 3 (GPL Version 3), copied verbatim in the file "LICENSE".
+ */
+
+#include "parts.h"
 #include "shared.h"
+
+#include <filesystem>
+#include <fstream>
+#include <range/v3/algorithm/for_each.hpp>
+#include <range/v3/range/conversion.hpp>
+#include <range/v3/view/getlines.hpp>
+#include <ranges>
+#include <stdio.h>
 
 auto input(const std::filesystem::path& inpath) {
   std::ifstream instream(inpath);

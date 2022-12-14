@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2022  Paul Seyfert
+ * Author: Paul Seyfert <pseyfert.mathphys@gmail.com>
+ *
+ * This software is distributed under the terms of the GNU General Public
+ * Licence version 3 (GPL Version 3), copied verbatim in the file "LICENSE".
+ */
+
 #include <iostream>
 #include <cstdio>
 #include "shared.h"
