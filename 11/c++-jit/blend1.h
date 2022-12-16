@@ -14,6 +14,6 @@ __m256i blendv_epi32_pp(__m256i const& in1, __m256i const& in2, __m256i const& m
   if (ma == 0) return _mm256_blend_epi32(in1, in2, 0);
 #define MACRO(z, n, aux) \
   else if (ma == n) return _mm256_blend_epi32(in1, in2, n);
-  BOOST_PP_REPEAT_FROM_TO(0, 127, MACRO, ma)
+  BOOST_PP_REPEAT_FROM_TO(0, 128, MACRO, ma)
   else __builtin_unreachable();
 }
