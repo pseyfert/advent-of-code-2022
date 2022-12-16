@@ -1,6 +1,6 @@
 DEPDIR := .deps
 
-CPPFLAGS=-isystem /home/pseyfert/coding/explore-rangev3/install-range-v3/include -I../../utils/include -isystem /home/pseyfert/coding/vcdevel/install/include/
+CPPFLAGS=-isystem /home/pseyfert/coding/explore-rangev3/install-range-v3/include -I../../utils/include -isystem /home/pseyfert/coding/vcdevel/install/include/ -isystem /home/pseyfert/coding/explore-fmt/install/include
 
 all: main
 
@@ -13,8 +13,8 @@ test: LDLIBS+=-lgtest_main -lgtest -pthread
 # DEPFLAGS = -MMD$(DEPDIR)/$*.d
 
 ### G++
-CXXFLAGS=-Wall -Wextra --std=c++20 -O3 -g -march=native -fconcepts-diagnostics-depth=3 -fdiagnostics-color=always
-LDLIBS=-L/home/pseyfert/coding/explore-rangev3/install-range-v3/lib -lfmt
+CXXFLAGS=-Wshadow -Wall -Wextra --std=c++20 -Og -ggdb -march=native -fconcepts-diagnostics-depth=3 -fdiagnostics-color=always
+LDLIBS=-L/home/pseyfert/coding/explore-rangev3/install-range-v3/lib -lfmt -L/home/pseyfert/coding/vcdevel/install/lib/ -lVc -L/home/pseyfert/coding/explore-fmt/install/lib -lfmt
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
 
@@ -29,6 +29,7 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 %.o : %.cpp Makefile $(DEPDIR)/%.d | $(DEPDIR)
 	$(COMPILE.cpp) $(OUTPUT_OPTION) $<
 
+monkeys/%.o: CXX=ccache g++
 monkeys/%.o: monkeys/%.cpp Makefile main $(DEPDIR)/%.d | $(DEPDIR)
 	$(COMPILE.cpp) $(OUTPUT_OPTION) -fpic $<
 
