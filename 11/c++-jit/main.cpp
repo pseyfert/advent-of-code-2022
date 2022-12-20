@@ -1,12 +1,15 @@
 #undef FMT_CONSTEVAL
+#include <algorithm>
 #include <cctype>
 #include <cstdio>
 #include <dlfcn.h>
+#include <execution>
 #include <filesystem>
 #include <fmt/core.h>
 #include <fstream>
 #include <immintrin.h>
 #include <iostream>
+#include <numeric>
 #include <range/v3/algorithm/for_each.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/chunk_by.hpp>
@@ -53,11 +56,12 @@ int main(int argc, char** argv) {
 
   std::vector<std::size_t> monkey_ids;
   std::vector<Monkey> monkeys;
+  int scm = 1;  // faking the smallest common multiple.
 
   ranges::for_each(
       ranges::view::chunk_by(
           in_buffer, [](const auto, const auto b) { return !b.empty(); }),
-      [&monkey_ids, &monkeys](auto monkey) {
+      [&monkey_ids, &monkeys, &scm](auto monkey) {
         auto cleaned = monkey | ranges::view::filter(
                                     [](auto line) { return !line.empty(); });
 
@@ -68,9 +72,12 @@ int main(int argc, char** argv) {
             *(line_iter++) | ranges::to<std::string>(),
             std::regex{".*Operation: new"}, "  Vc::AVX2::int_v new_");
         auto test = std::regex_replace(
-            *(line_iter++) | ranges::to<std::string>(),
+            *(line_iter) | ranges::to<std::string>(),
             std::regex{".*divisible by (\\d*)"},
             "  auto test = ((new_ % $1) == 0);");
+        int divisibility = std::stoi(std::regex_replace(
+            *(line_iter++) | ranges::to<std::string>(),
+            std::regex{".*divisible by (\\d*)"}, "$1"));
         auto true_branch = std::regex_replace(
             *(line_iter++) | ranges::to<std::string>(),
             std::regex{".*monkey (\\d*)"}, "$1");
@@ -93,6 +100,14 @@ int main(int argc, char** argv) {
         fmt::print(of, "{}\n", test);
         fmt::print(of, "  return std::tuple(new_.data(), test.data(), {}, {});\n", true_branch, false_branch);
         fmt::print(of, "}}\n");
+        fmt::print(of, "\n");
+        fmt::print(of, "std::tuple<__m256i, __m256i, std::size_t, std::size_t> Monkey{}_part2 (__m256i in, int scm) {{\n", mon);
+        fmt::print(of, "  Vc::AVX2::int_v old{{in}};\n");
+        fmt::print(of, "{};\n", operation);
+        fmt::print(of, "  new_ = new_ % scm;\n");
+        fmt::print(of, "{}\n", test);
+        fmt::print(of, "  return std::tuple(new_.data(), test.data(), {}, {});\n", true_branch, false_branch);
+        fmt::print(of, "}}\n");
         // clang-format on
         std::fclose(of);
         monkey_ids.push_back(static_cast<std::size_t>(mon - '0'));
@@ -107,6 +122,7 @@ int main(int argc, char** argv) {
         }
         this_monkey.items.emplace_back(buffer.data());
         this_monkey.actual_size = n;
+        scm = std::lcm(scm, divisibility);
       });
 
   auto make_targets = monkey_ids | ranges::view::transform([](auto id) {
@@ -145,12 +161,27 @@ int main(int argc, char** argv) {
       }
       monkey.oper = fn;
     }
+    if (monkey_ptr2 fn = reinterpret_cast<monkey_ptr2>(dlsym(
+            monkey_lib, fmt::format("_Z13Monkey{}_part2Dv4_xi", id).c_str()));
+        fn == nullptr) {
+      if (auto err = dlerror(); err) {
+        std::cout << err << '\n';
+      }
+      std::cout << "PANIC\n";
+    } else {
+      if (auto err = dlerror(); err) {
+        std::cout << err << '\n';
+      }
+      monkey.oper2 = fn;
+    }
   }
 
   print_monkeys(monkeys);
 
+  auto backup = monkeys;
+
   for (auto [i, m] : ranges::view::enumerate(monkeys)) {
-    m.perform_oper(monkeys);
+    m.perform_oper<1>(monkeys, 0);
     // fmt::print("after monkey {:-^80}\n", i);
     // print_monkeys(monkeys);
   }
@@ -158,20 +189,53 @@ int main(int argc, char** argv) {
   print_monkeys(monkeys);
   for (int r = 2; r <= 20; ++r) {
     for (auto [i, m] : ranges::view::enumerate(monkeys)) {
-      m.perform_oper(monkeys);
+      m.perform_oper<1>(monkeys, 0);
       if (dbg) {
         fmt::print("after monkey {:-^80}\n", i);
         print_monkeys(monkeys);
       }
     }
-    fmt::print("after round {:=^80}\n", r);
-    print_monkeys(monkeys);
+    // fmt::print("after round {:=^80}\n", r);
+    // print_monkeys(monkeys);
     // if (r == 4) {
     //   dbg = true;
     // } else if (r == 6) {
     //   dbg = false;
     // }
   }
+
+  auto num_items = [](const auto& ms) {
+    return std::transform_reduce(
+        std::execution::unseq, ms.begin(), ms.end(), 0,
+        [](auto lhs, auto rhs) { return lhs + rhs; },
+        [](Monkey const& m) { return m.actual_size; });
+  };
+
+  auto ref = num_items(backup);
+  int r = 1;
+  for (; r <= 10000; ++r) {
+    for (auto [i, m] : ranges::view::enumerate(backup)) {
+      m.perform_oper<2>(backup, scm);
+      if (ref != num_items(backup)) {
+        std::cout << "LEAK r = " << r << " i = " << i << '\n';
+        break;
+      }
+    }
+    if (ref != num_items(backup)) {
+      std::cout << "LEAK\n";
+      break;
+    }
+  }
+  std::cout << "r = " << r << '\n';
+  std::cout << "scm is " << scm << '\n';
+  print_monkeys(backup);
+  std::partial_sort(
+      std::execution::unseq, backup.begin(), backup.begin() + 2, backup.end(),
+      [](const auto& lhs, const auto& rhs) {
+        return lhs.inspections > rhs.inspections;
+      });
+  print_monkeys(backup);
+  std::cout << (backup[0].inspections * backup[1].inspections) << '\n';
 
   return 0;
 }

@@ -18,6 +18,9 @@
 using monkey_ptr =
     std::add_pointer<std::tuple<__m256i, __m256i, std::size_t, std::size_t>(
         __m256i)>::type;
+using monkey_ptr2 =
+    std::add_pointer<std::tuple<__m256i, __m256i, std::size_t, std::size_t>(
+        __m256i, int)>::type;
 
 bool dbg{false};
 
@@ -26,20 +29,35 @@ struct Monkey {
   int actual_size{0};
 
   monkey_ptr oper{nullptr};
-  int inspections{0};
+  monkey_ptr2 oper2{nullptr};
+  uint64_t inspections{0};
 
-  void perform_oper(std::vector<Monkey>& monkeys) {
+  template <int part>
+  void perform_oper(std::vector<Monkey>& monkeys, int scm) {
     for (auto [i, item] : ranges::view::enumerate(items)) {
-      /*std::tuple<__m256i, __m256i, std::size_t, std::size_t>*/ auto
+      if constexpr (part == 1) {
+        /*std::tuple<__m256i, __m256i, std::size_t, std::size_t>*/ auto
           [vals, select, true_target, false_target] = oper(item);
-      Vc::AVX2::int_v select_true =
+        Vc::AVX2::int_v select_true =
           (Vc::AVX2::int_v{select} && Vc::AVX2::int_v(loop_mask(i))).dataI();
-      // TODO: there's gotta be a better cast than !!
-      Vc::AVX2::int_v select_false =
+        // TODO: there's gotta be a better cast than !!
+        Vc::AVX2::int_v select_false =
           ((!Vc::AVX2::int_v{select}) && (!!Vc::AVX2::int_v(loop_mask(i))))
-              .dataI();
-      monkeys[true_target].my_compress_store(vals, select_true.data());
-      monkeys[false_target].my_compress_store(vals, select_false.data());
+          .dataI();
+        monkeys[true_target].my_compress_store(vals, select_true.data());
+        monkeys[false_target].my_compress_store(vals, select_false.data());
+      } else {
+        /*std::tuple<__m256i, __m256i, std::size_t, std::size_t>*/ auto
+          [vals, select, true_target, false_target] = oper2(item, scm);
+        Vc::AVX2::int_v select_true =
+          (Vc::AVX2::int_v{select} && Vc::AVX2::int_v(loop_mask(i))).dataI();
+        // TODO: there's gotta be a better cast than !!
+        Vc::AVX2::int_v select_false =
+          ((!Vc::AVX2::int_v{select}) && (!!Vc::AVX2::int_v(loop_mask(i))))
+          .dataI();
+        monkeys[true_target].my_compress_store(vals, select_true.data());
+        monkeys[false_target].my_compress_store(vals, select_false.data());
+      }
     }
     items.clear();
     inspections += actual_size;
@@ -64,7 +82,6 @@ struct Monkey {
     auto offset = (8 * (mask_i ^ 0xFF) - (actual_size % 8));
     const __m256i* lookups;
     if (offset < 0) {
-      std::cout << "WATCH OUT!\n";
       // can use mask_i ^ 0x80 instead if space_left != 0
       // intentional shadowing
       auto offset = (8 * (mask_i ^ 0x7F) - (actual_size % 8));
