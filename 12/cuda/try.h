@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <filesystem>
 
 struct input_data {
   std::vector<int> heights;
@@ -10,5 +11,4 @@ struct input_data {
   int goal_y;
 };
 
-input_data read();
-
+input_data read(std::filesystem::path);

@@ -1,3 +1,4 @@
+#define CUB_STDERR
 #include <cooperative_groups.h>
 #include <cub/util_debug.cuh>
 #include <cuda/std/barrier>
@@ -6,6 +7,18 @@
 
 #include <tuple>
 #include <vector>
+
+// https://stackoverflow.com/a/14038590
+#include <assert.h>
+#define cdpErrchk(ans) { cdpAssert((ans), __FILE__, __LINE__); }
+__device__ void cdpAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess)
+   {
+      printf("GPU kernel assert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) assert(0);
+   }
+}
 
 using myspan = std::experimental::mdspan<
     int, std::experimental::extents<
@@ -83,11 +96,9 @@ __global__ void cr(
 
   asdf<<<1, {*COLS, *ROWS}>>>(
       heights, scores, barrier, *goal_x, *goal_y, COLS, ROWS);
-  CubDebug(cudaPeekAtLastError());
+  cdpErrchk(cudaPeekAtLastError());
   block.sync();
-  printf("synced\n");
-  CubDebug(cudaPeekAtLastError());
-  printf("synced2\n");
+  cdpErrchk(cudaPeekAtLastError());
 }
 
 using myspan = std::experimental::mdspan<
@@ -97,8 +108,8 @@ using myspan = std::experimental::mdspan<
 
 #include "try.h"
 
-int main() {
-  auto input = read();
+int main(int, char** argv) {
+  auto input = read(argv[1]);
   int* COLS;
   int* ROWS;
   int* goal_x;

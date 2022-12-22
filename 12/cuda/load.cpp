@@ -14,8 +14,8 @@
 
 #include "try.h"
 
-input_data read() {
-  std::ifstream in_stream("../example.txt");
+input_data read(std::filesystem::path p) {
+  std::ifstream in_stream(p);
   auto input =
       ranges::getlines_view(in_stream) | ranges::to<std::vector<std::string>>();
   int COLS;
