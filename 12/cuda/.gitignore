@@ -1,2 +1,4 @@
 *.o
 both
+app
+.deps/
