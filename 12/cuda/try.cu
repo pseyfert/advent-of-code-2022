@@ -51,7 +51,8 @@ __global__ void asdf(
   /* printf( */
   /*     "hello 1 from tidy %d, tidx %d\txoffset %d, yoffset %d\tgrainx %d, " */
   /*     "grainy %d\n", */
-  /*     threadIdx.y, threadIdx.x, x_offset, y_offset, GRAINSIZE_X, GRAINSIZE_Y); */
+  /*     threadIdx.y, threadIdx.x, x_offset, y_offset, GRAINSIZE_X,
+   * GRAINSIZE_Y); */
 
   for (;;) {
     if ((scores)(goal_y, goal_x) < cuda::std::numeric_limits<int>::max()) {
@@ -115,7 +116,8 @@ __global__ void asdf(
           if (check_xmore) {
             best = min(best, (score_buffer)(y, x + 1));
             /* printf( */
-            /*     "reaching %d, %d from right with %d\n", y_lookup, x_lookup, */
+            /*     "reaching %d, %d from right with %d\n", y_lookup, x_lookup,
+             */
             /*     best); */
           }
           if (check_xless) {
@@ -128,13 +130,15 @@ __global__ void asdf(
           if (check_ymore) {
             best = min(best, (score_buffer)(y + 1, x));
             /* printf( */
-            /*     "reaching %d, %d from below with %d\n", y_lookup, x_lookup, */
+            /*     "reaching %d, %d from below with %d\n", y_lookup, x_lookup,
+             */
             /*     best); */
           }
           if (check_yless) {
             best = min(best, (score_buffer)(y - 1, x));
             /* printf( */
-            /*     "reaching %d, %d from above with %d\n", y_lookup, x_lookup, */
+            /*     "reaching %d, %d from above with %d\n", y_lookup, x_lookup,
+             */
             /*     best); */
           }
 
@@ -152,9 +156,10 @@ template <int GRAINSIZE_X, int GRAINSIZE_Y>
 __global__ void cr(
     int* heights, int* scores, int* goal_x, int* goal_y, int* COLS, int* ROWS,
     int* THREADS_X, int* THREADS_Y) {
-  printf(
-      "launch kernel with %d xthreads, %d ythreads, %d xgrain, %d ygrain\n",
-      *THREADS_X, *THREADS_Y, GRAINSIZE_X, GRAINSIZE_Y);
+  /* printf( */
+  /*     "launch kernel with %d xthreads, %d ythreads, %d xgrain, %d ygrain\n",
+   */
+  /*     *THREADS_X, *THREADS_Y, GRAINSIZE_X, GRAINSIZE_Y); */
 
   auto block = cooperative_groups::this_thread_block();
   if (threadIdx.x == 0 && threadIdx.y == 0) {
@@ -241,7 +246,9 @@ int main(int, char** argv) {
     cr<9, 3><<<1, 1>>>(
         heights, scores, goal_x, goal_y, COLS, ROWS, THREADS_X, THREADS_Y);
   } else {
-    printf("Didn't instantiate for that configuration %d  %d\n", GRAINSIZE_X, GRAINSIZE_Y);
+    printf(
+        "Didn't instantiate for that configuration %d  %d\n", GRAINSIZE_X,
+        GRAINSIZE_Y);
   }
   CubDebugExit(cudaPeekAtLastError());
   CubDebugExit(cudaDeviceSynchronize());
@@ -254,34 +261,37 @@ int main(int, char** argv) {
   myspan readback_scores_span(readback.data(), *ROWS, *COLS);
   printf("reached goal at %d\n", readback_scores_span(*goal_y, *goal_x));
   printf("Ran %d threads\n", (*ROWS) * (*COLS));
-  
+
   // part 2
-  // looking at the input, i'm cheating because by eye it's clear the best start is in the first column and can be any point therein
+
   myspan input_scores_span(input.scores.data(), *ROWS, *COLS);
-  for (auto y = 0;  y < *ROWS; ++y) {
-    input_scores_span(y, 0) = std::numeric_limits<int>::max();
+  myspan heights_span(input.heights.data(), *ROWS, *COLS);
+  for (auto x = 0; x < *COLS; ++x) {
+    for (auto y = 0; y < *ROWS; ++y) {
+      if (heights_span(y, x) == 0) {
+        input_scores_span(y, x) = 0;
+      }
+    }
   }
-  std::vector<int> potential_starts;
-  for (auto y = 0;  y < *ROWS; ++y) {
-    input_scores_span(y, 0) = 0;
-    CubDebugExit(cudaMemcpy(
-          scores, input.scores.data(), (*ROWS) * (*COLS) * sizeof(int),
-          cudaMemcpyHostToDevice));
-    cr<9, 3><<<1, 1>>>(
-        heights, scores, goal_x, goal_y, COLS, ROWS, THREADS_X, THREADS_Y);
-    CubDebugExit(cudaPeekAtLastError());
-    CubDebugExit(cudaDeviceSynchronize());
-    CubDebugExit(cudaPeekAtLastError());
+  CubDebugExit(cudaMemcpy(
+      scores, input.scores.data(), (*ROWS) * (*COLS) * sizeof(int),
+      cudaMemcpyHostToDevice));
+  cr<9, 3><<<1, 1>>>(
+      heights, scores, goal_x, goal_y, COLS, ROWS, THREADS_X, THREADS_Y);
+  CubDebugExit(cudaPeekAtLastError());
+  CubDebugExit(cudaDeviceSynchronize());
+  CubDebugExit(cudaPeekAtLastError());
 
-    CubDebugExit(cudaMemcpy(
-          readback.data(), scores, (*ROWS) * (*COLS) * sizeof(int),
-          cudaMemcpyDeviceToHost));
+  /* CubDebugExit(cudaMemcpy( */
+  /*       readback.data(), scores, (*ROWS) * (*COLS) * sizeof(int), */
+  /*       cudaMemcpyDeviceToHost)); */
 
-    potential_starts.push_back(readback_scores_span(*goal_y, *goal_x));
-    input_scores_span(y, 0) = std::numeric_limits<int>::max();
-  }
-  printf("part 2: %d\n", *std::min_element(potential_starts.begin(), potential_starts.end()));
+  CubDebugExit(cudaMemcpy(
+      readback.data() + *goal_x + (*COLS) * (*goal_y),
+      scores + *goal_x + (*COLS) * (*goal_y), sizeof(int),
+      cudaMemcpyDeviceToHost));
 
+  printf("part 2: %d\n", readback_scores_span(*goal_y, *goal_x));
 
   CubDebugExit(cudaFree(THREADS_X));
   CubDebugExit(cudaFree(THREADS_Y));
