@@ -2,7 +2,6 @@
 #include "io_format.h"
 
 #include <cub/util_debug.cuh>
-#include <stdio.h>
 #include <thrust/device_vector.h>
 
 #include <gtest/gtest.h>

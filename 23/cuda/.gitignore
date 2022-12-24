@@ -1,2 +1,4 @@
 *.o
 .deps/
+eval_test
+round_test

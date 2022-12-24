@@ -18,6 +18,11 @@ CXX=g++-11
 
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
+round_test: LDLIBS+=-lgtest_main -lgtest
+round_test: round_test.cu.o workings.cu.o parse.cpp.o
+	echo $(DEPFILES)
+	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
+
 eval_test: LDLIBS+=-lgtest_main -lgtest
 eval_test: eval_test.cu.o eval.cu.o parse.cpp.o
 	echo $(DEPFILES)
