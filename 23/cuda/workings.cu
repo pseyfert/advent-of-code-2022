@@ -1,5 +1,6 @@
 #include "global_funs.cuh"
 
+#include <cstdio>
 #include <thrust/count.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/zip_iterator.h>
@@ -7,6 +8,8 @@
 #include <cooperative_groups.h>
 
 #include <cuda/std/array>
+
+#define MAX_THREADS 512
 
 // https://stackoverflow.com/a/14038590
 #include <assert.h>
@@ -16,7 +19,8 @@ __device__ void cdpAssert(
     cudaError_t code, const char* file, int line, bool abort = true) {
   if (code != cudaSuccess) {
     printf(
-        "GPU kernel assert: %s %s %d\n", cudaGetErrorString(code), file, line);
+        "%s:%d GPU kernel assert %d: %s \n", file, line, code,
+        cudaGetErrorString(code));
     if (abort)
       assert(0);
   }
@@ -26,6 +30,12 @@ __device__ void cdpAssert(
 // S = y-
 // W = x-
 // E = x+
+
+__device__ int grainsize(const int N_elves, int blockdim) {
+  int floor = N_elves / blockdim;
+  int need_more = !!(N_elves % blockdim);
+  return floor + need_more;
+}
 
 struct CollisionDetector : public thrust::binary_function<int, int, bool> {
   int target_x_;
@@ -45,18 +55,22 @@ struct CollisionDetector : public thrust::binary_function<int, int, bool> {
 
 __global__ void collision_check(
     int* go_ahead, int const* proposed_x, int const* proposed_y, int N_elves) {
-  const auto this_elve = threadIdx.x;
-  const auto target_x = proposed_x[this_elve];
-  const auto target_y = proposed_y[this_elve];
+  const auto begin_elve = grainsize(N_elves, blockDim.x) * threadIdx.x;
+  const auto end_elve =
+      min(grainsize(N_elves, blockDim.x) * (threadIdx.x + 1), N_elves);
+  for (auto this_elve = begin_elve; this_elve < end_elve; ++this_elve) {
+    const auto target_x = proposed_x[this_elve];
+    const auto target_y = proposed_y[this_elve];
 
-  const auto incoming = thrust::count_if(
-      thrust::device, thrust::make_zip_iterator(proposed_x, proposed_y),
-      thrust::make_zip_iterator(proposed_x + N_elves, proposed_y + N_elves),
-      CollisionDetector(target_x, target_y));
-  if (incoming == 1)
-    go_ahead[this_elve] = 1;
-  else
-    go_ahead[this_elve] = 0;
+    const auto incoming = thrust::count_if(
+        thrust::device, thrust::make_zip_iterator(proposed_x, proposed_y),
+        thrust::make_zip_iterator(proposed_x + N_elves, proposed_y + N_elves),
+        CollisionDetector(target_x, target_y));
+    if (incoming == 1)
+      go_ahead[this_elve] = 1;
+    else
+      go_ahead[this_elve] = 0;
+  }
 }
 
 __device__ bool clear_north(
@@ -76,6 +90,7 @@ __device__ bool clear_north(
       CollisionDetector(current_x[this_elve] - 1, current_y[this_elve] + 1));
   return N + NE + NW == 0;
 }
+
 __device__ bool clear_south(
     const int this_elve, int const* current_x, int const* current_y,
     const int N_elves) {
@@ -93,6 +108,7 @@ __device__ bool clear_south(
       CollisionDetector(current_x[this_elve] - 1, current_y[this_elve] - 1));
   return S + SE + SW == 0;
 }
+
 __device__ bool clear_east(
     const int this_elve, int const* current_x, int const* current_y,
     const int N_elves) {
@@ -110,6 +126,7 @@ __device__ bool clear_east(
       CollisionDetector(current_x[this_elve] + 1, current_y[this_elve] - 1));
   return E + NE + SE == 0;
 }
+
 __device__ bool clear_west(
     const int this_elve, int const* current_x, int const* current_y,
     const int N_elves) {
@@ -189,23 +206,26 @@ struct Preference {
 __global__ void propose_move(
     int* proposed_x, int* proposed_y, int const* current_x,
     int const* current_y, int N_elves, int round_mod_four) {
-  const auto this_elve = threadIdx.x;
+  const auto begin_elve = grainsize(N_elves, blockDim.x) * threadIdx.x;
+  const auto end_elve =
+      min(grainsize(N_elves, blockDim.x) * (threadIdx.x + 1), N_elves);
+  for (auto this_elve = begin_elve; this_elve < end_elve; ++this_elve) {
+    // init with NSWE
+    // TODO: share withing block
+    auto preferences = cuda::std::array<Preference, 7>{
+        Preference(Direction::North), Preference(Direction::South),
+        Preference(Direction::West),  Preference(Direction::East),
+        Preference(Direction::North), Preference(Direction::South),
+        Preference(Direction::West)};
 
-  // init with NSWE
-  // TODO: share withing block
-  auto preferences = cuda::std::array<Preference, 7>{
-      Preference(Direction::North), Preference(Direction::South),
-      Preference(Direction::West),  Preference(Direction::East),
-      Preference(Direction::North), Preference(Direction::South),
-      Preference(Direction::West)};
-
-  proposed_x[this_elve] = current_x[this_elve];
-  proposed_y[this_elve] = current_y[this_elve];
-  for (auto pit = preferences.cbegin() + round_mod_four;
-       pit != preferences.cbegin() + round_mod_four + 4; pit++) {
-    if (pit->clear(this_elve, current_x, current_y, N_elves)) {
-      pit->fill_preference(
-          this_elve, current_x, current_y, proposed_x, proposed_y);
+    proposed_x[this_elve] = current_x[this_elve];
+    proposed_y[this_elve] = current_y[this_elve];
+    for (auto pit = preferences.cbegin() + round_mod_four;
+         pit != preferences.cbegin() + round_mod_four + 4; pit++) {
+      if (pit->clear(this_elve, current_x, current_y, N_elves)) {
+        pit->fill_preference(
+            this_elve, current_x, current_y, proposed_x, proposed_y);
+      }
     }
   }
   /* std::rotate(preferences.begin(), preferences.begin() + 1,
@@ -214,26 +234,35 @@ __global__ void propose_move(
 
 __global__ void apply_check(
     int* current_x, int* current_y, const int* proposed_x,
-    const int* proposed_y, const int* go_ahead) {
-  const auto this_elve = threadIdx.x;
-  if (go_ahead[this_elve]) {
-    current_x[this_elve] = proposed_x[this_elve];
-    current_y[this_elve] = proposed_y[this_elve];
+    const int* proposed_y, const int* go_ahead, const int N_elves) {
+  const auto begin_elve = grainsize(N_elves, blockDim.x) * threadIdx.x;
+  const auto end_elve =
+      min(grainsize(N_elves, blockDim.x) * (threadIdx.x + 1), N_elves);
+  for (auto this_elve = begin_elve; this_elve < end_elve; ++this_elve) {
+    if (go_ahead[this_elve]) {
+      current_x[this_elve] = proposed_x[this_elve];
+      current_y[this_elve] = proposed_y[this_elve];
+    }
   }
 }
 
 __global__ void do_round(
     int* N_elves, int* current_x, int* current_y, int* go_ahead,
     int* proposed_x, int* proposed_y, int* round_mod_four) {
-  propose_move<<<1, *N_elves>>>(
+  propose_move<<<1, min(*N_elves, MAX_THREADS)>>>(
       proposed_x, proposed_y, current_x, current_y, *N_elves, *round_mod_four);
+  if (cudaPeekAtLastError() == 9) {
+    printf("Can't launch kernel with %d elves\n", *N_elves);
+  }
+  cdpErrchk(cudaPeekAtLastError());
   cdpErrchk(cudaDeviceSynchronize());
   cdpErrchk(cudaPeekAtLastError());
-  collision_check<<<1, *N_elves>>>(go_ahead, proposed_x, proposed_y, *N_elves);
+  collision_check<<<1, min(*N_elves, MAX_THREADS)>>>(
+      go_ahead, proposed_x, proposed_y, *N_elves);
   cdpErrchk(cudaDeviceSynchronize());
   cdpErrchk(cudaPeekAtLastError());
-  apply_check<<<1, *N_elves>>>(
-      current_x, current_y, proposed_x, proposed_y, go_ahead);
+  apply_check<<<1, min(*N_elves, MAX_THREADS)>>>(
+      current_x, current_y, proposed_x, proposed_y, go_ahead, *N_elves);
   cdpErrchk(cudaDeviceSynchronize());
   cdpErrchk(cudaPeekAtLastError());
 }

@@ -49,6 +49,6 @@ $(DEPFILES):
 include $(wildcard $(DEPFILES))
 
 clean:
-	rm -f app *.o
+	rm -f *_test main *.o
 
 .PHONY: clean
