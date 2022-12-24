@@ -5,7 +5,9 @@
 #include <stdio.h>
 #include <thrust/device_vector.h>
 
-int main() {
+#include <gtest/gtest.h>
+
+TEST(example, count_empty) {
   auto input = read("../end_example.txt");
 
   thrust::device_vector<int> d_x = input.first;
@@ -25,10 +27,8 @@ int main() {
   CubDebugExit(cudaDeviceSynchronize());
   CubDebugExit(cudaPeekAtLastError());
 
-  printf("in the example there are %d empty cells\n", *res);
+  EXPECT_EQ(*res, 110);
 
   CubDebugExit(cudaFree(N_elves));
   CubDebugExit(cudaFree(res));
-
-  return 0;
 }

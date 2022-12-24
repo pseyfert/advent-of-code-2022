@@ -18,6 +18,7 @@ CXX=g++-11
 
 DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
+eval_test: LDLIBS+=-lgtest_main -lgtest
 eval_test: eval_test.cu.o eval.cu.o parse.cpp.o
 	echo $(DEPFILES)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
