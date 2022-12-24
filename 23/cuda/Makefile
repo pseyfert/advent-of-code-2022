@@ -28,6 +28,10 @@ eval_test: eval_test.cu.o eval.cu.o parse.cpp.o
 	echo $(DEPFILES)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
 
+main: workings.cu.o eval.cu.o parse.cpp.o main.cu.o
+	echo $(DEPFILES)
+	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
+
 %.cu.o : %.cu Makefile $(DEPDIR)/%.d | $(DEPDIR)
 	$(NVCC) $(NVCCFLAGS) $(NVPPFLAGS) $< -c -o $@ $(CPPFLAGS) $(DEPFLAGS)
 
