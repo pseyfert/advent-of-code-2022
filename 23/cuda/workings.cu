@@ -1,3 +1,5 @@
+#include "global_funs.cuh"
+
 #include <thrust/count.h>
 #include <thrust/execution_policy.h>
 #include <thrust/iterator/zip_iterator.h>
@@ -5,6 +7,20 @@
 #include <cooperative_groups.h>
 
 #include <cuda/std/array>
+
+// https://stackoverflow.com/a/14038590
+#include <assert.h>
+#define cdpErrchk(ans) \
+  { cdpAssert((ans), __FILE__, __LINE__); }
+__device__ void cdpAssert(
+    cudaError_t code, const char* file, int line, bool abort = true) {
+  if (code != cudaSuccess) {
+    printf(
+        "GPU kernel assert: %s %s %d\n", cudaGetErrorString(code), file, line);
+    if (abort)
+      assert(0);
+  }
+}
 
 // N = y+
 // S = y-
@@ -209,11 +225,15 @@ __global__ void apply_check(
 __global__ void do_round(
     int* N_elves, int* current_x, int* current_y, int* go_ahead,
     int* proposed_x, int* proposed_y, int* round_mod_four) {
-  propose_move<<<1, N_elves>>>(
-      proposed_x, proposed_y, current_x, current_y, N_elves, round_mod_four);
-  // sync
-  collision_check<<<1, N_elves>>>(go_ahead, proposed_x, proposed_y, N_elves);
-  // sync
-  apply_check<<<1, N_elves>>>(
+  propose_move<<<1, *N_elves>>>(
+      proposed_x, proposed_y, current_x, current_y, *N_elves, *round_mod_four);
+  cdpErrchk(cudaDeviceSynchronize());
+  cdpErrchk(cudaPeekAtLastError());
+  collision_check<<<1, *N_elves>>>(go_ahead, proposed_x, proposed_y, *N_elves);
+  cdpErrchk(cudaDeviceSynchronize());
+  cdpErrchk(cudaPeekAtLastError());
+  apply_check<<<1, *N_elves>>>(
       current_x, current_y, proposed_x, proposed_y, go_ahead);
+  cdpErrchk(cudaDeviceSynchronize());
+  cdpErrchk(cudaPeekAtLastError());
 }
