@@ -63,22 +63,16 @@ struct AroundDetector : public thrust::binary_function<int, int, bool> {
 
   template <typename Tuple>
   __device__ bool operator()(const Tuple& t) const {
-    return (thrust::get<0>(t) == center_x_ + 1 &&
-            thrust::get<1>(t) == center_y_ + 1) ||
-           (thrust::get<0>(t) == center_x_ + 1 &&
-            thrust::get<1>(t) == center_y_ + 0) ||
-           (thrust::get<0>(t) == center_x_ + 1 &&
-            thrust::get<1>(t) == center_y_ - 1) ||
-           (thrust::get<0>(t) == center_x_ + 0 &&
-            thrust::get<1>(t) == center_y_ + 1) ||
-           (thrust::get<0>(t) == center_x_ + 0 &&
-            thrust::get<1>(t) == center_y_ - 1) ||
-           (thrust::get<0>(t) == center_x_ - 1 &&
-            thrust::get<1>(t) == center_y_ + 1) ||
-           (thrust::get<0>(t) == center_x_ - 1 &&
-            thrust::get<1>(t) == center_y_ + 0) ||
-           (thrust::get<0>(t) == center_x_ - 1 &&
-            thrust::get<1>(t) == center_y_ - 1);
+    // clang-format off
+    return (thrust::get<0>(t) == center_x_ + 1 && thrust::get<1>(t) == center_y_ + 1) ||
+           (thrust::get<0>(t) == center_x_ + 1 && thrust::get<1>(t) == center_y_ + 0) ||
+           (thrust::get<0>(t) == center_x_ + 1 && thrust::get<1>(t) == center_y_ - 1) ||
+           (thrust::get<0>(t) == center_x_ + 0 && thrust::get<1>(t) == center_y_ + 1) ||
+           (thrust::get<0>(t) == center_x_ + 0 && thrust::get<1>(t) == center_y_ - 1) ||
+           (thrust::get<0>(t) == center_x_ - 1 && thrust::get<1>(t) == center_y_ + 1) ||
+           (thrust::get<0>(t) == center_x_ - 1 && thrust::get<1>(t) == center_y_ + 0) ||
+           (thrust::get<0>(t) == center_x_ - 1 && thrust::get<1>(t) == center_y_ - 1);
+    // clang-format on
   }
 };
 
@@ -250,15 +244,14 @@ __global__ void propose_move(
   const auto begin_elve = grainsize(N_elves, blockDim.x) * threadIdx.x;
   const auto end_elve =
       min(grainsize(N_elves, blockDim.x) * (threadIdx.x + 1), N_elves);
+  // init with NSWE
+  // TODO: share withing block
+  const auto preferences = cuda::std::array<Preference, 7>{
+      Preference(Direction::North), Preference(Direction::South),
+      Preference(Direction::West),  Preference(Direction::East),
+      Preference(Direction::North), Preference(Direction::South),
+      Preference(Direction::West)};
   for (auto this_elve = begin_elve; this_elve < end_elve; ++this_elve) {
-    // init with NSWE
-    // TODO: share withing block
-    auto preferences = cuda::std::array<Preference, 7>{
-        Preference(Direction::North), Preference(Direction::South),
-        Preference(Direction::West),  Preference(Direction::East),
-        Preference(Direction::North), Preference(Direction::South),
-        Preference(Direction::West)};
-
     proposed_x[this_elve] = current_x[this_elve];
     proposed_y[this_elve] = current_y[this_elve];
     if (needs_to_move(current_x, current_y, N_elves, this_elve)) {
@@ -272,8 +265,6 @@ __global__ void propose_move(
       }
     }
   }
-  /* std::rotate(preferences.begin(), preferences.begin() + 1,
-   * preferences.end()); */
 }
 
 __global__ void apply_check(
@@ -295,9 +286,6 @@ __global__ void do_round(
     int* proposed_x, int* proposed_y, int* round_mod_four) {
   propose_move<<<1, min(*N_elves, MAX_THREADS)>>>(
       proposed_x, proposed_y, current_x, current_y, *N_elves, *round_mod_four);
-  if (cudaPeekAtLastError() == 9) {
-    printf("Can't launch kernel with %d elves\n", *N_elves);
-  }
   cdpErrchk(cudaPeekAtLastError());
   cdpErrchk(cudaDeviceSynchronize());
   cdpErrchk(cudaPeekAtLastError());
