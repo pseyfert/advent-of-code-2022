@@ -3,13 +3,14 @@
 #include <cstdio>
 #include <thrust/count.h>
 #include <thrust/execution_policy.h>
+#include <thrust/find.h>
 #include <thrust/iterator/zip_iterator.h>
 
 #include <cooperative_groups.h>
 
 #include <cuda/std/array>
 
-#define MAX_THREADS 512
+#define MAX_THREADS 256
 
 // https://stackoverflow.com/a/14038590
 #include <assert.h>
@@ -234,13 +235,13 @@ struct Preference {
 __device__ bool needs_to_move(
     const int* current_x, const int* current_y, int N_elves,
     const int this_elve) {
-  // Actually no need to count, could early abort.
-  const auto elves_around = thrust::count_if(
+  const auto elves_around = thrust::find_if(
       thrust::device, thrust::make_zip_iterator(current_x, current_y),
       thrust::make_zip_iterator(current_x + N_elves, current_y + N_elves),
       AroundDetector(current_x[this_elve], current_y[this_elve]));
 
-  return elves_around > 0;
+  return elves_around !=
+         thrust::make_zip_iterator(current_x + N_elves, current_y + N_elves);
 }
 
 __global__ void propose_move(
@@ -266,6 +267,7 @@ __global__ void propose_move(
         if (pit->clear(this_elve, current_x, current_y, N_elves)) {
           pit->fill_preference(
               this_elve, current_x, current_y, proposed_x, proposed_y);
+          break;
         }
       }
     }
