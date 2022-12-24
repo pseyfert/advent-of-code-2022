@@ -43,6 +43,7 @@ struct CollisionDetector : public thrust::binary_function<int, int, bool> {
   __device__ CollisionDetector(int target_x, int target_y)
       : target_x_(target_x), target_y_(target_y) {}
 
+  // TODO: why tuple?
   __device__ bool operator()(const int x, const int y) const {
     return x == target_x_ && y == target_y_;
   }
@@ -50,6 +51,33 @@ struct CollisionDetector : public thrust::binary_function<int, int, bool> {
   template <typename Tuple>
   __device__ bool operator()(const Tuple& t) const {
     return thrust::get<0>(t) == target_x_ && thrust::get<1>(t) == target_y_;
+  }
+};
+
+struct AroundDetector : public thrust::binary_function<int, int, bool> {
+  int center_x_;
+  int center_y_;
+  __device__ AroundDetector(int center_x, int center_y)
+      : center_x_(center_x), center_y_(center_y) {}
+
+  template <typename Tuple>
+  __device__ bool operator()(const Tuple& t) const {
+    return (thrust::get<0>(t) == center_x_ + 1 &&
+            thrust::get<1>(t) == center_y_ + 1) ||
+           (thrust::get<0>(t) == center_x_ + 1 &&
+            thrust::get<1>(t) == center_y_ + 0) ||
+           (thrust::get<0>(t) == center_x_ + 1 &&
+            thrust::get<1>(t) == center_y_ - 1) ||
+           (thrust::get<0>(t) == center_x_ + 0 &&
+            thrust::get<1>(t) == center_y_ + 1) ||
+           (thrust::get<0>(t) == center_x_ + 0 &&
+            thrust::get<1>(t) == center_y_ - 1) ||
+           (thrust::get<0>(t) == center_x_ - 1 &&
+            thrust::get<1>(t) == center_y_ + 1) ||
+           (thrust::get<0>(t) == center_x_ - 1 &&
+            thrust::get<1>(t) == center_y_ + 0) ||
+           (thrust::get<0>(t) == center_x_ - 1 &&
+            thrust::get<1>(t) == center_y_ - 1);
   }
 };
 
@@ -203,6 +231,18 @@ struct Preference {
   }
 };
 
+__device__ bool needs_to_move(
+    const int* current_x, const int* current_y, int N_elves,
+    const int this_elve) {
+  // Actually no need to count, could early abort.
+  const auto elves_around = thrust::count_if(
+      thrust::device, thrust::make_zip_iterator(current_x, current_y),
+      thrust::make_zip_iterator(current_x + N_elves, current_y + N_elves),
+      AroundDetector(current_x[this_elve], current_y[this_elve]));
+
+  return elves_around > 0;
+}
+
 __global__ void propose_move(
     int* proposed_x, int* proposed_y, int const* current_x,
     int const* current_y, int N_elves, int round_mod_four) {
@@ -220,11 +260,13 @@ __global__ void propose_move(
 
     proposed_x[this_elve] = current_x[this_elve];
     proposed_y[this_elve] = current_y[this_elve];
-    for (auto pit = preferences.cbegin() + round_mod_four;
-         pit != preferences.cbegin() + round_mod_four + 4; pit++) {
-      if (pit->clear(this_elve, current_x, current_y, N_elves)) {
-        pit->fill_preference(
-            this_elve, current_x, current_y, proposed_x, proposed_y);
+    if (needs_to_move(current_x, current_y, N_elves, this_elve)) {
+      for (auto pit = preferences.cbegin() + round_mod_four;
+           pit != preferences.cbegin() + round_mod_four + 4; pit++) {
+        if (pit->clear(this_elve, current_x, current_y, N_elves)) {
+          pit->fill_preference(
+              this_elve, current_x, current_y, proposed_x, proposed_y);
+        }
       }
     }
   }
