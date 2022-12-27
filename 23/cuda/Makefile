@@ -23,12 +23,17 @@ round_test: round_test.cu.o workings.cu.o parse.cpp.o
 	echo $(DEPFILES)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
 
+part2_test: LDLIBS+=-lgtest_main -lgtest
+part2_test: workings.cu.o parse.cpp.o part2_test.cu.o part2.cu.o
+	echo $(DEPFILES)
+	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
+
 eval_test: LDLIBS+=-lgtest_main -lgtest
 eval_test: eval_test.cu.o eval.cu.o parse.cpp.o
 	echo $(DEPFILES)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
 
-main: workings.cu.o eval.cu.o parse.cpp.o main.cu.o
+main: workings.cu.o eval.cu.o parse.cpp.o main.cu.o part2.cu.o
 	echo $(DEPFILES)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
 

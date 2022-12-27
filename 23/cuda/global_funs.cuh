@@ -7,3 +7,5 @@ __global__ void do_round(
 __global__ void empty_spaces(
     int const* current_x, int const* current_y, const int* N_elves,
     int* result);
+
+__global__ void stationary(const int* go, const int* N_elves, bool* retval);
