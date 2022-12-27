@@ -27,7 +27,7 @@ TEST(example, part2) {
   
   int round_count = 0;
 
-  for (; round_count < 20; ++round_count) {
+  for (; round_count < 30; ++round_count) {
     *rm4 = round_count % 4;
 
     do_round<<<1, 1>>>(
