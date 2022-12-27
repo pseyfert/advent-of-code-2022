@@ -1,3 +1,4 @@
 .deps/
 *.o
 read_test
+main
