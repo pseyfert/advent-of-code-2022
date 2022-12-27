@@ -27,8 +27,8 @@ __device__ void cdpAssert(
   }
 }
 
-// N = y+
-// S = y-
+// N = y-
+// S = y+
 // W = x-
 // E = x+
 
@@ -102,15 +102,15 @@ __device__ bool clear_north(
   const auto N = thrust::count_if(
       thrust::device, thrust::make_zip_iterator(current_x, current_y),
       thrust::make_zip_iterator(current_x + N_elves, current_y + N_elves),
-      CollisionDetector(current_x[this_elve], current_y[this_elve] + 1));
+      CollisionDetector(current_x[this_elve], current_y[this_elve] - 1));
   const auto NE = thrust::count_if(
       thrust::device, thrust::make_zip_iterator(current_x, current_y),
       thrust::make_zip_iterator(current_x + N_elves, current_y + N_elves),
-      CollisionDetector(current_x[this_elve] + 1, current_y[this_elve] + 1));
+      CollisionDetector(current_x[this_elve] + 1, current_y[this_elve] - 1));
   const auto NW = thrust::count_if(
       thrust::device, thrust::make_zip_iterator(current_x, current_y),
       thrust::make_zip_iterator(current_x + N_elves, current_y + N_elves),
-      CollisionDetector(current_x[this_elve] - 1, current_y[this_elve] + 1));
+      CollisionDetector(current_x[this_elve] - 1, current_y[this_elve] - 1));
   return N + NE + NW == 0;
 }
 
@@ -120,15 +120,15 @@ __device__ bool clear_south(
   const auto S = thrust::count_if(
       thrust::device, thrust::make_zip_iterator(current_x, current_y),
       thrust::make_zip_iterator(current_x + N_elves, current_y + N_elves),
-      CollisionDetector(current_x[this_elve], current_y[this_elve] - 1));
+      CollisionDetector(current_x[this_elve], current_y[this_elve] + 1));
   const auto SE = thrust::count_if(
       thrust::device, thrust::make_zip_iterator(current_x, current_y),
       thrust::make_zip_iterator(current_x + N_elves, current_y + N_elves),
-      CollisionDetector(current_x[this_elve] + 1, current_y[this_elve] - 1));
+      CollisionDetector(current_x[this_elve] + 1, current_y[this_elve] + 1));
   const auto SW = thrust::count_if(
       thrust::device, thrust::make_zip_iterator(current_x, current_y),
       thrust::make_zip_iterator(current_x + N_elves, current_y + N_elves),
-      CollisionDetector(current_x[this_elve] - 1, current_y[this_elve] - 1));
+      CollisionDetector(current_x[this_elve] - 1, current_y[this_elve] + 1));
   return S + SE + SW == 0;
 }
 
@@ -212,10 +212,10 @@ struct Preference {
       int* proposed_x, int* proposed_y) const {
     if (d_ == Direction::North) {
       proposed_x[this_elve] = current_x[this_elve];
-      proposed_y[this_elve] = current_y[this_elve] + 1;
+      proposed_y[this_elve] = current_y[this_elve] - 1;
     } else if (d_ == Direction::South) {
       proposed_x[this_elve] = current_x[this_elve];
-      proposed_y[this_elve] = current_y[this_elve] - 1;
+      proposed_y[this_elve] = current_y[this_elve] + 1;
     } else if (d_ == Direction::West) {
       proposed_x[this_elve] = current_x[this_elve] - 1;
       proposed_y[this_elve] = current_y[this_elve];
