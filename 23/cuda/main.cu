@@ -77,7 +77,7 @@ int main(int, char**) {
     }
   }
 
-  printf("Had to do %d rounds until the elves stopped moving\n", round + 1);
+  printf("Had to do %d rounds until the elves stopped moving\n", round);
 
   CubDebugExit(cudaFree(N_elves));
   CubDebugExit(cudaFree(rm4));

@@ -51,7 +51,7 @@ TEST(example, part2) {
       break;
     }
   }
-  EXPECT_EQ(round_count, 20) << "Though maybe off by 1? Who knows?";
+  EXPECT_EQ(round_count, 19) << "Though maybe off by 1? Who knows?";
 
   CubDebugExit(cudaFree(N_elves));
   CubDebugExit(cudaFree(rm4));

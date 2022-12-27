@@ -85,14 +85,21 @@ __global__ void collision_check(
     const auto target_x = proposed_x[this_elve];
     const auto target_y = proposed_y[this_elve];
 
+    if (go_ahead[this_elve] == 0) {
+      // short cutting a bit
+      continue;
+    }
     const auto incoming = thrust::count_if(
         thrust::device, thrust::make_zip_iterator(proposed_x, proposed_y),
         thrust::make_zip_iterator(proposed_x + N_elves, proposed_y + N_elves),
         CollisionDetector(target_x, target_y));
-    if (incoming == 1)
-      go_ahead[this_elve] = 1;
-    else
+    if (incoming == 1) {
+      // If the elf want's to move, they can.
+      // If the elf doesn't want to move, they shall stay.
+    } else {
+      // Elf wants to move but shall not
       go_ahead[this_elve] = 0;
+    }
   }
 }
 
@@ -240,7 +247,7 @@ __device__ bool needs_to_move(
 
 __global__ void propose_move(
     int* proposed_x, int* proposed_y, int const* current_x,
-    int const* current_y, int N_elves, int round_mod_four) {
+    int const* current_y, int N_elves, int round_mod_four, int* go_ahead) {
   const auto begin_elve = grainsize(N_elves, blockDim.x) * threadIdx.x;
   const auto end_elve =
       min(grainsize(N_elves, blockDim.x) * (threadIdx.x + 1), N_elves);
@@ -254,12 +261,14 @@ __global__ void propose_move(
   for (auto this_elve = begin_elve; this_elve < end_elve; ++this_elve) {
     proposed_x[this_elve] = current_x[this_elve];
     proposed_y[this_elve] = current_y[this_elve];
+    go_ahead[this_elve] = 0;
     if (needs_to_move(current_x, current_y, N_elves, this_elve)) {
       for (auto pit = preferences.cbegin() + round_mod_four;
            pit != preferences.cbegin() + round_mod_four + 4; pit++) {
         if (pit->clear(this_elve, current_x, current_y, N_elves)) {
           pit->fill_preference(
               this_elve, current_x, current_y, proposed_x, proposed_y);
+          go_ahead[this_elve] = 1;
           break;
         }
       }
@@ -285,7 +294,8 @@ __global__ void do_round(
     int* N_elves, int* current_x, int* current_y, int* go_ahead,
     int* proposed_x, int* proposed_y, int* round_mod_four) {
   propose_move<<<1, min(*N_elves, MAX_THREADS)>>>(
-      proposed_x, proposed_y, current_x, current_y, *N_elves, *round_mod_four);
+      proposed_x, proposed_y, current_x, current_y, *N_elves, *round_mod_four,
+      go_ahead);
   cdpErrchk(cudaPeekAtLastError());
   cdpErrchk(cudaDeviceSynchronize());
   cdpErrchk(cudaPeekAtLastError());
