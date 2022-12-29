@@ -10,7 +10,7 @@ use std::io;
 use std::io::BufRead;
 use std::path::Path;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Packet {
     Val(i32),
     List(Vec<Packet>),
@@ -59,9 +59,30 @@ impl PartialOrd for Packet {
     }
 }
 
+// impl PartialEq for Packet {
+//     fn eq(&self, other: &Self) -> bool {
+//         self.partial_cmp(other) == Some(Ordering::Equal)
+//     }
+// }
+
 impl PartialEq for Packet {
     fn eq(&self, other: &Self) -> bool {
-        self.partial_cmp(other) == Some(Ordering::Equal)
+        match self {
+            Packet::Val(i) => match other {
+                Packet::Val(o) => i == o,
+                _ => false,
+            },
+            Packet::List(tl) => match other {
+                Packet::List(ol) => tl
+                    .into_iter()
+                    .zip_longest(ol)
+                    .all(|zip_iter| match zip_iter {
+                        Left(_) | Right(_) => false,
+                        Both(lhs_e, rhs_e) => rhs_e == lhs_e,
+                    }),
+                _ => false,
+            },
+        }
     }
 }
 
@@ -185,9 +206,50 @@ fn main() -> Result<()> {
         .map(|x| x + 1)
         // .collect_vec();
         .reduce(|| 0, |a, b| a + b);
-        // .reduce(|a, b| a + b);
+    // .reduce(|a, b| a + b);
 
     println!("part 1 {:?}", result);
+
+    let dividers = [
+        Packet::List(vec![Packet::List(vec![Packet::Val(2)])]),
+        Packet::List(vec![Packet::List(vec![Packet::Val(6)])]),
+    ];
+
+    let mut packets: Vec<Packet> = parsed_input
+        .into_par_iter()
+        .map(|(a, b)| vec![a, b])
+        .flatten()
+        .chain(dividers.clone())
+        .collect();
+    packets.par_sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+    let packets = packets;
+    let packets = &packets;
+
+    // let part2 = dividers
+    //     .into_par_iter()
+    //     .map(|divider| {
+    //         packets
+    //             .into_par_iter()
+    //             .position_any(|inlist| *inlist == divider)
+    //             .unwrap()
+    //             + 1
+    //     })
+    //     .reduce(|| 1, |a, b| (a * b));
+
+    let part2 = dividers
+        .into_par_iter()
+        .map(|divider| {
+            for (i, other) in packets.into_iter().enumerate() {
+                if *other == divider {
+                    return i + 1;
+                }
+            }
+            println!("aahahahahaah");
+            0
+        })
+        .reduce(|| 1, |a, b| (a * b));
+
+    println!("part 2 {}", part2);
 
     Ok(())
 }
