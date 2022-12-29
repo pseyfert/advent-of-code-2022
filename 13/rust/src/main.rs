@@ -2,7 +2,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use env_logger;
 use itertools::EitherOrBoth::{Both, Left, Right};
 use itertools::Itertools;
-use log::debug;
+use log::{debug, info};
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::fs::File;
@@ -116,7 +116,7 @@ impl Packet {
                         }
                         Packet::List(retval_inner)
                     }
-                    c => Packet::Val(c.parse::<i32>().unwrap()),
+                    c => Packet::Val(s.parse::<i32>().unwrap()),
                 }
             })
         }
@@ -177,9 +177,10 @@ fn main() -> Result<()> {
         .par_iter()
         // .iter()
         .positions(|(first, second)| {
-            let retval = first < second;
-            debug!("Comparing {:?} to {:?} yields {}", first, second, retval);
-            return retval;
+            let retval = first.partial_cmp(second);
+            debug!("Comparing {:?} to {:?} yields {:?}", first, second, retval);
+            info!("{:?}", retval);
+            return retval == Some(Ordering::Less);
         })
         .map(|x| x + 1)
         // .collect_vec();
