@@ -311,7 +311,7 @@ int main(int, char** argv) {
     k[ii] = std::get<0>(i)[ii];
   }
 
-  proceed<<<1, {32, 32}>>>(k, X, Y);
+  proceed<<<1, {40, 25}>>>(k, X, Y);
   CubDebugExit(cudaPeekAtLastError());
   CubDebugExit(cudaDeviceSynchronize());
   CubDebugExit(cudaPeekAtLastError());
