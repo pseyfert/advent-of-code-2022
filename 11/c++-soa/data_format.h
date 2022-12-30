@@ -7,10 +7,15 @@
  * Licence version 3 (GPL Version 3), copied verbatim in the file "LICENSE".
  */
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <execution>
 #include <filesystem>
+#include <fmt/core.h>
+#include <fmt/format.h>
 #include <functional>
+#include <range/v3/view/indices.hpp>
 #include <tuple>
 #include <variant>
 #include <vector>
@@ -49,4 +54,32 @@ struct Monkey {
   operation_t operation;
   worry_t operand;
   std::size_t inspections;
+};
+
+template <>
+struct fmt::formatter<container_t> {
+  constexpr auto parse(fmt::format_parse_context& ctx) {
+    return ctx.begin();
+  }
+
+  template <typename FormatContext>
+  constexpr auto format(container_t const& c, FormatContext& ctx) const {
+    std::size_t n_monks = std::max_element(
+        std::execution::par_unseq, c.cbegin(), c.cend(),
+        [](const auto lhs, const auto rhs) {
+          return lhs.owner() < rhs.owner();
+        })->owner();
+
+    std::ostringstream ss;
+    for ([[maybe_unused]] auto mid : ranges::view::indices(n_monks + 1)) {
+      ss << "Monkey " << mid << ": ";
+      for (auto& item : c) {
+        if (item.owner() == mid) {
+          ss << item.worries() << ", ";
+        }
+      }
+      ss << '\n';
+    }
+    return fmt::format_to(ctx.out(), "{}", ss.str());
+  }
 };
