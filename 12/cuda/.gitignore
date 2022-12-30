@@ -1,4 +1,2 @@
-*.o
 both
 app
-.deps/
