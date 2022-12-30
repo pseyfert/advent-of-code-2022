@@ -116,14 +116,19 @@ __device__ cuda::barrier<cuda::thread_scope_block>::arrival_token print(
   }
 }
 
+enum class direction { explore, retreat };
+
 __device__ void explore(
     myspan const& prev, myspan& next, myspan& storm_left, myspan& storm_right,
     myspan& storm_up, myspan& storm_down, int next_round,
-    cuda::barrier<cuda::thread_scope_block>& barrier) {
+    cuda::barrier<cuda::thread_scope_block>& barrier, direction d) {
   for (auto y = y_begin(); y < y_end(); ++y) {
     for (auto x = x_begin(); x < x_end(); ++x) {
       next(y, x) = 0;
-      if (y == 0 && x == 0) {
+      if (d == direction::explore && y == 0 && x == 0) {
+        next(y, x) = 1;
+      }
+      if (d == direction::retreat && y == mapsize.y - 1 && x == mapsize.x - 1) {
         next(y, x) = 1;
       }
       if (prev(y, x)) {
@@ -219,13 +224,55 @@ __global__ void proceed(int* map_arg, int* X, int* Y) {
     //     std::move(t));
     explore(
         prev, next, storm_left, storm_right, storm_up, storm_down, round + 1,
-        barrier);
+        barrier, direction::explore);
 
-    if (prev(mapsize.y -1, mapsize.x -1)) break;
+    if (prev(mapsize.y - 1, mapsize.x - 1))
+      break;
   }
 
   if (threadIdx.x == 0 && threadIdx.y == 0) {
-    printf("Reached goal after %d rounds\n", round+1);
+    printf("Reached goal after %d rounds\n", round + 1);
+  }
+  for (auto y = y_begin(); y < y_end(); ++y) {
+    for (auto x = x_begin(); x < x_end(); ++x) {
+      exploration_a(y, x) = 0;
+      exploration_b(y, x) = 0;
+    }
+  }
+  barrier.arrive_and_wait();
+  for (; round <= 2000; ++round) {
+    myspan& prev = (round % 2 == 0) ? exploration_a : exploration_b;
+    myspan& next = (round % 2 == 0) ? exploration_b : exploration_a;
+    explore(
+        prev, next, storm_left, storm_right, storm_up, storm_down, round + 1,
+        barrier, direction::retreat);
+
+    if (prev(0, 0))
+      break;
+  }
+  if (threadIdx.x == 0 && threadIdx.y == 0) {
+    printf("retreated after %d rounds\n", round + 1);
+  }
+  for (auto y = y_begin(); y < y_end(); ++y) {
+    for (auto x = x_begin(); x < x_end(); ++x) {
+      exploration_a(y, x) = 0;
+      exploration_b(y, x) = 0;
+    }
+  }
+  barrier.arrive_and_wait();
+  for (; round <= 2000; ++round) {
+    myspan& prev = (round % 2 == 0) ? exploration_a : exploration_b;
+    myspan& next = (round % 2 == 0) ? exploration_b : exploration_a;
+    explore(
+        prev, next, storm_left, storm_right, storm_up, storm_down, round + 1,
+        barrier, direction::explore);
+
+    if (prev(mapsize.y - 1, mapsize.x - 1))
+      break;
+  }
+
+  if (threadIdx.x == 0 && threadIdx.y == 0) {
+    printf("part 2 after %d rounds\n", round + 1);
     cudaFree(storm_up.data_handle());
     cudaFree(storm_down.data_handle());
     cudaFree(storm_left.data_handle());
