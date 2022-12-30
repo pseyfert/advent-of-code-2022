@@ -4,6 +4,7 @@
 #include <cuda/std/barrier>
 #include <experimental/mdspan>
 #include <string>
+#include "parse.h"
 
 // modified from https://stackoverflow.com/a/14038590
 #include <assert.h>
@@ -27,33 +28,33 @@ using myspan = std::experimental::mdspan<
 
 __device__ dim3 mapsize;
 
-__device__ std::size_t x_begin() {
+__device__ mysizet x_begin() {
   return threadIdx.x * (mapsize.x / blockDim.x + !!(mapsize.x % blockDim.x));
 }
-__device__ std::size_t x_end() {
+__device__ mysizet x_end() {
   return min(
       (threadIdx.x + 1) * (mapsize.x / blockDim.x + !!(mapsize.x % blockDim.x)),
       mapsize.x);
 }
 
-__device__ std::size_t y_begin() {
+__device__ mysizet y_begin() {
   return threadIdx.y * (mapsize.y / blockDim.y + !!(mapsize.y % blockDim.y));
 }
-__device__ std::size_t y_end() {
+__device__ mysizet y_end() {
   return min(
       (threadIdx.y + 1) * (mapsize.y / blockDim.y + !!(mapsize.y % blockDim.y)),
       mapsize.y);
 }
 
-__device__ std::size_t upstorm_y(std::size_t y_now, std::size_t round) {
+__device__ mysizet upstorm_y(mysizet y_now, mysizet round) {
   return (y_now + round) % mapsize.y;
 }
 
-__device__ std::size_t leftstorm_x(std::size_t x_now, std::size_t round) {
+__device__ mysizet leftstorm_x(mysizet x_now, mysizet round) {
   return (x_now + round) % mapsize.x;
 }
 
-__device__ std::size_t rightstorm_x(std::size_t x_now, std::size_t round) {
+__device__ mysizet rightstorm_x(mysizet x_now, mysizet round) {
   while (round > x_now && round >= mapsize.x) {
     round -= mapsize.x;
   }
@@ -63,7 +64,7 @@ __device__ std::size_t rightstorm_x(std::size_t x_now, std::size_t round) {
   return (x_now + mapsize.x) - round;
 }
 
-__device__ std::size_t downstorm_y(std::size_t y_now, std::size_t round) {
+__device__ mysizet downstorm_y(mysizet y_now, mysizet round) {
   while (round > y_now && round >= mapsize.y) {
     round -= mapsize.y;
   }
@@ -88,6 +89,8 @@ __device__ cuda::barrier<cuda::thread_scope_block>::arrival_token print(
       printf("#");
       for (int x = 0; x < mapsize.x; ++x) {
         char to_be_put = '.';
+        if (exploration(y, x))
+          to_be_put = 'E';
         if (storm_left(y, leftstorm_x(x, round)))
           to_be_put = '<';
         if (storm_right(y, rightstorm_x(x, round)))
@@ -109,9 +112,46 @@ __device__ cuda::barrier<cuda::thread_scope_block>::arrival_token print(
     for (int x = 0; x < mapsize.x + 2; ++x) {
       printf("#");
     }
-    printf("\n\n");
+    printf("\n\n\n\n");
   }
-  return barrier.arrive();
+}
+
+__device__ void explore(
+    myspan const& prev, myspan& next, myspan& storm_left, myspan& storm_right,
+    myspan& storm_up, myspan& storm_down, int next_round,
+    cuda::barrier<cuda::thread_scope_block>& barrier) {
+  for (auto y = y_begin(); y < y_end(); ++y) {
+    for (auto x = x_begin(); x < x_end(); ++x) {
+      next(y, x) = 0;
+      if (y == 0 && x == 0) {
+        next(y, x) = 1;
+      }
+      if (prev(y, x)) {
+        next(y, x) = 1;
+      }
+      if (y > 0 && prev(y - 1, x)) {
+        next(y, x) = 1;
+      }
+      if (y < mapsize.y - 1 && prev(y + 1, x)) {
+        next(y, x) = 1;
+      }
+      if (x > 0 && prev(y, x - 1)) {
+        next(y, x) = 1;
+      }
+      if (x < mapsize.x - 1 && prev(y, x + 1)) {
+        next(y, x) = 1;
+      }
+      if (auto sum = storm_left(y, leftstorm_x(x, next_round)) +
+                     storm_right(y, rightstorm_x(x, next_round)) +
+                     storm_up(upstorm_y(y, next_round), x) +
+                     storm_down(downstorm_y(y, next_round), x);
+          sum > 0) {
+        next(y, x) = 0;
+      }
+    }
+  }
+
+  barrier.arrive_and_wait();
 }
 
 __global__ void proceed(int* map_arg, int* X, int* Y) {
@@ -120,7 +160,8 @@ __global__ void proceed(int* map_arg, int* X, int* Y) {
   __shared__ myspan storm_right;
   __shared__ myspan storm_up;
   __shared__ myspan storm_down;
-  __shared__ myspan exploration;
+  __shared__ myspan exploration_a;
+  __shared__ myspan exploration_b;
 
   auto block = cooperative_groups::this_thread_block();
   __shared__ cuda::barrier<cuda::thread_scope_block> barrier;
@@ -141,7 +182,9 @@ __global__ void proceed(int* map_arg, int* X, int* Y) {
     cdpErrchk(cudaMalloc(&store, storage_size * sizeof(int)));
     storm_down = myspan(store, mapsize.y, mapsize.x);
     cdpErrchk(cudaMalloc(&store, storage_size * sizeof(int)));
-    exploration = myspan(store, mapsize.y, mapsize.x);
+    exploration_a = myspan(store, mapsize.y, mapsize.x);
+    cdpErrchk(cudaMalloc(&store, storage_size * sizeof(int)));
+    exploration_b = myspan(store, mapsize.y, mapsize.x);
   }
   block.sync();
   cdpErrchk(cudaPeekAtLastError());
@@ -161,22 +204,34 @@ __global__ void proceed(int* map_arg, int* X, int* Y) {
       } else if (map(y, x) == 'v') {
         storm_down(y, x) = 1;
       }
+      exploration_a(y, x) = 0;
     }
   }
   barrier.arrive_and_wait();
 
-  for (auto round = 0; round <= 18; ++round) {
-    barrier.wait(print(
-        storm_left, storm_right, storm_up, storm_down, exploration, round,
-        barrier, barrier.arrive()));
+  auto round = 0;
+  for (; round <= 2000; ++round) {
+    myspan& prev = (round % 2 == 0) ? exploration_a : exploration_b;
+    myspan& next = (round % 2 == 0) ? exploration_b : exploration_a;
+    // auto t = barrier.arrive();
+    // print(
+    //     storm_left, storm_right, storm_up, storm_down, prev, round, barrier,
+    //     std::move(t));
+    explore(
+        prev, next, storm_left, storm_right, storm_up, storm_down, round + 1,
+        barrier);
+
+    if (prev(mapsize.y -1, mapsize.x -1)) break;
   }
 
   if (threadIdx.x == 0 && threadIdx.y == 0) {
+    printf("Reached goal after %d rounds\n", round+1);
     cudaFree(storm_up.data_handle());
     cudaFree(storm_down.data_handle());
     cudaFree(storm_left.data_handle());
     cudaFree(storm_right.data_handle());
-    cudaFree(exploration.data_handle());
+    cudaFree(exploration_a.data_handle());
+    cudaFree(exploration_b.data_handle());
   }
 }
 
@@ -190,22 +245,26 @@ __global__ void test() {
   p();
 }
 
-int main() {
+int main(int, char** argv) {
   int* k;
   int* X;
   int* Y;
 
-  std::string raw = ">>.<^<.<..<<>v.><><^v^^>";
-  CubDebugExit(cudaMallocManaged(&k, raw.size() * sizeof(int)));
+  auto i = read(argv[1]);
+  printf("there are %d rows and %d cols\n", std::get<1>(i), std::get<2>(i));
+
   CubDebugExit(cudaMallocManaged(&X, sizeof(int)));
   CubDebugExit(cudaMallocManaged(&Y, sizeof(int)));
-  *X = 6;
-  *Y = 4;
-  for (int i = 0; i < raw.size(); ++i) {
-    k[i] = raw[i];
+  *X = std::get<2>(i);
+  *Y = std::get<1>(i);
+  auto mapsize = (*X) * (*Y);
+
+  CubDebugExit(cudaMallocManaged(&k, mapsize * sizeof(int)));
+  for (int ii = 0; ii < mapsize; ++ii) {
+    k[ii] = std::get<0>(i)[ii];
   }
 
-  proceed<<<1, {2, 2}>>>(k, X, Y);
+  proceed<<<1, {32, 32}>>>(k, X, Y);
   CubDebugExit(cudaPeekAtLastError());
   CubDebugExit(cudaDeviceSynchronize());
   CubDebugExit(cudaPeekAtLastError());

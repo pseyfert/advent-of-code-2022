@@ -23,7 +23,7 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 # 	echo $(DEPFILES)
 # 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
 
-main: walk.cu.o
+main: walk.cu.o parse.cpp.o
 	echo $(DEPFILES)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
 
