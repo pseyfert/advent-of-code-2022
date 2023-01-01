@@ -15,6 +15,6 @@ __host__ __device__ int32_t manhattan(const Location& a, const Location& b) {
   return std::abs(a.x - b.x) + std::abs(a.y - b.y);
 }
 
-__host__ __device__ inline Circle toCircle(const SensorBeaconPair& sb) {
-  return Circle{.center = sb.S, .radius = {manhattan(sb.S, sb.B)}};
+__host__ __device__ Circle toCircle(const SensorBeaconPair& sb) {
+  return Circle{.center = sb.S, .radius = manhattan(sb.S, sb.B)};
 }

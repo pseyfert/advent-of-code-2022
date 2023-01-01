@@ -109,4 +109,4 @@ __host__ std::vector<x_interval> simplify(
 __host__ __device__ bool first_cmp(
     const std::optional<x_interval>&, const std::optional<x_interval>&);
 
-__host__ __device__ inline Circle toCircle(const SensorBeaconPair& sb);
+__host__ __device__ Circle toCircle(const SensorBeaconPair& sb);

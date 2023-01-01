@@ -35,7 +35,7 @@ circle_test: circle_test.cu.o helpers.cu.o helpers.cpp.o
 	echo $(DEPFILES)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
 
-main: helpers.cu.o
+main: helpers.cu.o helpers.cpp.o main.cpp.o read.cpp.o
 	echo $(DEPFILES)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(NVLDLIBS) $(LDLIBS)
 
