@@ -25,6 +25,11 @@ merge_test: merge_test.cu.o helpers.cu.o helpers.cpp.o
 	echo $(DEPFILES)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
 
+read_example_test: LDLIBS+=-lgtest_main -lgtest
+read_example_test: read_example_test.cpp.o helpers.cu.o helpers.cpp.o read.cpp.o
+	echo $(DEPFILES)
+	$(NVCC) $(NVCCFLAGS) $^ -o $@ $(LDLIBS)
+
 circle_test: LDLIBS+=-lgtest_main -lgtest
 circle_test: circle_test.cu.o helpers.cu.o helpers.cpp.o
 	echo $(DEPFILES)
